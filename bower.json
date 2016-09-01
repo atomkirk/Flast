@@ -1,0 +1,24 @@
+{
+  "name": "flast",
+  "homepage": "https://github.com/atomkirk/Flast",
+  "authors": [
+    "Adam Kirk <atomkirk@gmail.com>"
+  ],
+  "description": "Javascript library for panning, zooming and drawing on a tiled image.",
+  "main": "flask.js",
+  "keywords": [
+    "drawing",
+    "canvas",
+    "zoom",
+    "pan",
+    "tiled"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

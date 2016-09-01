@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)http://phrogz.net/tmp/canvas_zoom_to_cursor.html -->
+<html lang="en" data-ember-extension="1">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Zooming Test</title>
+    <style type="text/css" media="screen">
+      body { background:#eee; margin:1em; text-align:center; }
+      canvas { display:block; margin:1em auto; background:#fff; border:1px solid #ccc }
+    </style>
+    <script src="flask.js"></script>
+  </head>
+  <body>
+    <canvas width="800" height="600"></canvas>
+
+    <script type="text/javascript" charset="utf-8">
+      var editor;
+      window.onload = () => {
+        var canvas = document.getElementsByTagName('canvas')[0];
+        editor = new Flask(canvas);
+      };
+
+      function selectArrowTool(e) {
+        editor.state.tool = 'arrow';
+      }
+
+      function selectLineTool(e) {
+        editor.state.tool = 'line';
+      }
+
+      function selectCircleTool(e) {
+        editor.state.tool = 'circle';
+      }
+
+      function selectRectangleTool(e) {
+        editor.state.tool = 'rectangle';
+      }
+
+    </script>
+    <button onclick="selectArrowTool()">arrow</button>
+    <button onclick="selectLineTool()">line</button>
+    <button onclick="selectCircleTool()">circle</button>
+    <button onclick="selectRectangleTool()">rectangle</button>
+  </body>
+</html>
