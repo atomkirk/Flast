@@ -14,10 +14,9 @@
     <canvas width="800" height="600"></canvas>
 
     <script type="text/javascript" charset="utf-8">
-      var editor;
       window.onload = () => {
         var canvas = document.getElementsByTagName('canvas')[0];
-        editor = new Flast(canvas);
+        window.editor = new Flast(canvas);
       };
 
       function selectArrowTool(e) {
