@@ -8,7 +8,7 @@ var rename = require('gulp-rename');
 var DEST = 'dist/';
 
 gulp.task('default', function() {
-  return gulp.src('flask.js')
+  return gulp.src('flast.js')
     .pipe(es6transpiler())
     // This will output the non-minified version
     .pipe(gulp.dest(DEST))

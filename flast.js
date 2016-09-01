@@ -1,4 +1,4 @@
-class Flask {
+class Flast {
 
   constructor(canvas) {
     this._canvas = canvas;
@@ -55,7 +55,7 @@ class Flask {
       }
 
       var factor = Math.pow(this.zoomSpeed, delta);
-      var scale = Flask.clamp(this._transform.a * factor, this._minScale, this.maxScale);
+      var scale = Flast.clamp(this._transform.a * factor, this._minScale, this.maxScale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);
@@ -277,8 +277,8 @@ class Flask {
   _clampToBounds() {
     var maxWidth = this.width * this._transform.a;
     var maxHeight = this.height * this._transform.d;
-    this._transform.e = Flask.clamp(this._transform.e, -(maxWidth - this._canvas.width), 0);
-    this._transform.f = Flask.clamp(this._transform.f, -(maxHeight - this._canvas.height), 0);
+    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this._canvas.width), 0);
+    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this._canvas.height), 0);
   }
 
   static clamp(value, min, max) {

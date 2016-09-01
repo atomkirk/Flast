@@ -8,7 +8,7 @@
       body { background:#eee; margin:1em; text-align:center; }
       canvas { display:block; margin:1em auto; background:#fff; border:1px solid #ccc }
     </style>
-    <script src="flask.js"></script>
+    <script src="flast.js"></script>
   </head>
   <body>
     <canvas width="800" height="600"></canvas>
@@ -17,7 +17,7 @@
       var editor;
       window.onload = () => {
         var canvas = document.getElementsByTagName('canvas')[0];
-        editor = new Flask(canvas);
+        editor = new Flast(canvas);
       };
 
       function selectArrowTool(e) {

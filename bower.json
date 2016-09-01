@@ -5,7 +5,7 @@
     "Adam Kirk <atomkirk@gmail.com>"
   ],
   "description": "Javascript library for panning, zooming and drawing on a tiled image.",
-  "main": "flask.js",
+  "main": "flast.js",
   "keywords": [
     "drawing",
     "canvas",

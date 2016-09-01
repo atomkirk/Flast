@@ -2,7 +2,7 @@
   "name": "flast",
   "version": "1.0.0",
   "description": "Javascript library for panning, zooming and drawing on a tiled image.",
-  "main": "flask.js",
+  "main": "flast.js",
   "dependencies": {},
   "devDependencies": {
     "gulp": "^3.9.1",
