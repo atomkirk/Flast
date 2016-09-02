@@ -93,6 +93,20 @@ Defining a new tool is easy:
       };
     }
 
+    window.onload = () => {
+      var canvas = document.getElementsByTagName('canvas')[0];
+      window.flastEditor = new Flast(canvas, {
+        getTile: function(zoom, x, y) {
+          return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+        },
+        tools: [
+          lineTool
+        ]
+      });
+    };
+
+    flastEditor.setTool('line');
+
 ## Notes
 
 Name generated with http://mrsharpoblunto.github.io/foswig.js/
