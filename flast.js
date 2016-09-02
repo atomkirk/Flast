@@ -11,6 +11,13 @@ class Flast {
       return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
     };
 
+    this.tools = options.tools || [
+      Flast.ARROW,
+      Flast.LINE,
+      Flast.CIRCLE,
+      Flast.RECTANGLE
+    ];
+
     // private
     this._canvas = canvas;
     this._ctx = canvas.getContext('2d');
@@ -33,6 +40,7 @@ class Flast {
       width: 624,
       height: 416
     });
+
     this.redraw();
   }
 
@@ -92,57 +100,10 @@ class Flast {
 
     // draw the current annotation
     this._currentAnnotation.concat(this._currentShape || []).forEach(annotation => {
-      if (annotation.kind === 'arrow') {
-
-        let p1 = annotation.geometry.p1;
-        let p2 = annotation.geometry.p2;
-
-        this._ctx.beginPath();
-        this._ctx.moveTo(p1.x, p1.y);
-        var vector = {
-          dx: p2.x - p1.x,
-          dy: p2.y - p1.y
-        }
-        var length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
-        var percent = (length - 20.0) / length;
-        this._ctx.lineTo(p1.x + (vector.dx * percent), p1.y + (vector.dy * percent));
-        this._ctx.stroke();
-
-        var radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
-        radians += ((p2.x > p1.x) ? 90 : -90) * Math.PI / 180;
-
-        this._ctx.save();
-        this._ctx.beginPath();
-        this._ctx.translate(p2.x, p2.y);
-        this._ctx.rotate(radians);
-        this._ctx.moveTo(0, 0);
-        this._ctx.lineTo(15, 60);
-        this._ctx.lineTo(-15, 60);
-        this._ctx.closePath();
-        this._ctx.restore();
-        this._ctx.fill();
-      }
-      else if (annotation.kind === 'line') {
-        let p1 = annotation.geometry.p1;
-        let p2 = annotation.geometry.p2;
-        this._ctx.beginPath();
-        this._ctx.moveTo(p1.x, p1.y);
-        this._ctx.lineTo(p2.x, p2.y);
-        this._ctx.stroke();
-      }
-      else if (annotation.kind === 'circle') {
-        this._ctx.beginPath();
-        var g = annotation.geometry;
-        this._ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
-        this._ctx.stroke();
-      }
-      else if (annotation.kind === 'rectangle') {
-        this._ctx.beginPath();
-        let p1 = annotation.geometry.p1;
-        let p2 = annotation.geometry.p2;
-        this._ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
-        this._ctx.stroke();
-      }
+      var tool = this.tools.find((tool) => {
+        return tool.name === annotation.kind;
+      });
+      tool.drawInContext(this._ctx, annotation.geometry);
     });
   }
 
@@ -196,23 +157,10 @@ class Flast {
     else if (!this._state.drawing && this._state.tool !== 'none') {
       this._state.drawing = true;
       var pt = this._eventPoint(e);
-      if (this._state.tool === 'arrow' || this._state.tool === 'line' || this._state.tool === 'rectangle') {
-        this._currentShape = {
-          kind: this._state.tool,
-          geometry: {
-            p1: pt,
-            p2: pt
-          }
-        }
-      }
-      else if (this._state.tool === 'circle') {
-        this._currentShape = {
-          kind: 'circle',
-          geometry: {
-            center: pt,
-            radius: 0
-          }
-        }
+      var tool = this._currentTool();
+      this._currentShape = {
+        kind: tool.name,
+        geometry: tool.startGeometry(pt)
       }
     }
     else if (this._state.drawing) {
@@ -235,15 +183,9 @@ class Flast {
       this._updateTransform();
     }
     if (this._state.drawing) {
-      if (this._state.tool === 'arrow' || this._state.tool === 'line' || this._state.tool === 'rectangle') {
-        this._currentShape.geometry.p2 = pt;
-        this.redraw();
-      }
-      else if (this._state.tool === 'circle') {
-        var c = this._currentShape.geometry.center;
-        this._currentShape.geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
-        this.redraw();
-      }
+      var tool = this._currentTool();
+      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
+      this.redraw();
     }
   }
 
@@ -254,21 +196,12 @@ class Flast {
       this._currentShape = null;
       this.redraw();
     }
-    // arrow
-    else if (e.which === 65) {
-      this._state.tool = 'arrow';
-    }
-    // line
-    else if (e.which === 76) {
-      this._state.tool = 'line';
-    }
-    // circle
-    else if (e.which === 67) {
-      this._state.tool = 'circle';
-    }
-    // rectangle
-    else if (e.which === 82) {
-      this._state.tool = 'rectangle';
+    else {
+      for (let tool of this.tools) {
+        if (e.which === tool.keyCode) {
+          this._state.tool = tool.name;
+        }
+      }
     }
   }
 
@@ -336,4 +269,130 @@ class Flast {
              r2.top > r1.bottom ||
              r2.bottom < r1.top);
   }
+
+  _currentTool() {
+    return this.tools.find((tool) => {
+      return tool.name === this._state.tool;
+    });
+  }
+
+  static get ARROW() {
+    return {
+      name: 'arrow',
+      keyCode: 65,
+      startGeometry: function(pt) {
+        return {
+          p1: pt,
+          p2: pt
+        };
+      },
+      updateGeometry: function(geometry, pt) {
+        geometry.p2 = pt;
+        return geometry;
+      },
+      drawInContext: function(ctx, geometry) {
+        let p1 = geometry.p1;
+        let p2 = geometry.p2;
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        var vector = {
+          dx: p2.x - p1.x,
+          dy: p2.y - p1.y
+        }
+        var length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
+        var percent = (length - 20.0) / length;
+        ctx.lineTo(p1.x + (vector.dx * percent), p1.y + (vector.dy * percent));
+        ctx.stroke();
+
+        var radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
+        radians += ((p2.x > p1.x) ? 90 : -90) * Math.PI / 180;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.translate(p2.x, p2.y);
+        ctx.rotate(radians);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(15, 60);
+        ctx.lineTo(-15, 60);
+        ctx.closePath();
+        ctx.restore();
+        ctx.fill();
+      }
+    };
+  }
+
+  static get LINE() {
+    return {
+      name: 'line',
+      keyCode: 76,
+      startGeometry: function(pt) {
+        return {
+          p1: pt,
+          p2: pt
+        };
+      },
+      updateGeometry: function(geometry, pt) {
+        geometry.p2 = pt;
+        return geometry;
+      },
+      drawInContext: function(ctx, geometry) {
+        let p1 = geometry.p1;
+        let p2 = geometry.p2;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+    };
+  }
+
+  static get CIRCLE() {
+    return {
+      name: 'circle',
+      keyCode: 67,
+      startGeometry: function(pt) {
+        return {
+          center: pt,
+          radius: 0
+        };
+      },
+      updateGeometry: function(geometry, pt) {
+        var c = geometry.center;
+        geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
+        return geometry;
+      },
+      drawInContext: function(ctx, geometry) {
+        var g = geometry;
+        ctx.beginPath();
+        ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+    };
+  }
+
+  static get RECTANGLE() {
+    return {
+      name: 'rectangle',
+      keyCode: 82,
+      startGeometry: function(pt) {
+        return {
+          p1: pt,
+          p2: pt
+        };
+      },
+      updateGeometry: function(geometry, pt) {
+        geometry.p2 = pt;
+        return geometry;
+      },
+      drawInContext: function(ctx, geometry) {
+        let p1 = geometry.p1;
+        let p2 = geometry.p2;
+        ctx.beginPath();
+        ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+        ctx.stroke();
+      }
+    };
+  }
+
 }

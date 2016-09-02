@@ -19,7 +19,13 @@
         window.editor = new Flast(canvas, {
           getTileUrl: function(zoom, x, y) {
             return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
-          }
+          },
+          tools: [
+            Flast.ARROW,
+            Flast.LINE,
+            Flast.CIRCLE,
+            Flast.RECTANGLE
+          ]
         });
       };
 
