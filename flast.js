@@ -1,13 +1,15 @@
 class Flast {
 
-  constructor(canvas) {
+  constructor(canvas, options = {}) {
 
     // public
-    this.maxZoomLevel = 4;
+    this.maxZoom = options.maxZoom || 4;
 
-    this.maxScale = 2;
+    this.zoomSpeed = options.zoomSpeed || 1.01;
 
-    this.zoomSpeed = 1.01;
+    this.getTileUrl = options.getTileUrl || function(zoom, x, y) {
+      return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+    };
 
     // private
     this._canvas = canvas;
@@ -18,6 +20,7 @@ class Flast {
     this._annotations = [];
     this._currentAnnotation = [];
     this._currentShape;
+    this._maxScale = 2;
     this._state = {
       mouse: 'up', // 'down'
       tool: 'none', // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
@@ -26,19 +29,19 @@ class Flast {
     }
 
     this._addEventListeners();
-    this.setTileSize();
+    this.setTileSize(options.tileSize || {
+      width: 624,
+      height: 416
+    });
     this.redraw();
   }
 
   setTileSize(size) {
-    this.tileSize = {
-      width: 624,
-      height: 416
-    };
+    this.tileSize = size;
     this._tileCache = {};
     this._contentSize = {
-      width: this.tileSize.width * Math.pow(2, this.maxZoomLevel),
-      height: this.tileSize.height * Math.pow(2, this.maxZoomLevel)
+      width: this.tileSize.width * Math.pow(2, this.maxZoom),
+      height: this.tileSize.height * Math.pow(2, this.maxZoom)
     };
     var minScaleX = this._canvas.width / this._contentSize.width;
     var minScaleY = this._canvas.height / this._contentSize.height;
@@ -58,10 +61,10 @@ class Flast {
     }
     this._ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
     var mins = Math.log(this._minScale) / Math.LN2;
-    var maxs = Math.log(this.maxScale) / Math.LN2;
+    var maxs = Math.log(this._maxScale) / Math.LN2;
     var s = Math.log(this._transform.a) / Math.LN2;
     var zoomPercent = (s - mins) / (maxs - mins);
-    var zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoomLevel), 1);
+    var zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
     var numTiles = Math.pow(2, zoomLevel);
     var tileWidth = this._contentSize.width / numTiles;
     var tileHeight = this._contentSize.height / numTiles;
@@ -163,7 +166,7 @@ class Flast {
       }
 
       var factor = Math.pow(this.zoomSpeed, delta);
-      var scale = Flast.clamp(this._transform.a * factor, this._minScale, this.maxScale);
+      var scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);
@@ -302,7 +305,7 @@ class Flast {
   }
 
   _tileImage(zoom, x, y) {
-    var url = `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+    var url = this.getTileUrl(zoom, x, y);
     var image = this._tileCache[url];
     if (!image) {
       image = new Image;

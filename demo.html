@@ -16,7 +16,11 @@
     <script type="text/javascript" charset="utf-8">
       window.onload = () => {
         var canvas = document.getElementsByTagName('canvas')[0];
-        window.editor = new Flast(canvas);
+        window.editor = new Flast(canvas, {
+          getTileUrl: function(zoom, x, y) {
+            return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+          }
+        });
       };
 
       function selectArrowTool(e) {
@@ -34,7 +38,6 @@
       function selectRectangleTool(e) {
         editor._state.tool = 'rectangle';
       }
-
     </script>
     <button onclick="selectArrowTool()">arrow</button>
     <button onclick="selectLineTool()">line</button>
