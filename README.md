@@ -93,6 +93,8 @@ Defining a new tool is easy:
       };
     }
 
+Supply the tool in the options hash when you create the editor:
+
     window.onload = () => {
       var canvas = document.getElementsByTagName('canvas')[0];
       window.flastEditor = new Flast(canvas, {
