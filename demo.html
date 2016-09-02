@@ -30,19 +30,19 @@
       };
 
       function selectArrowTool(e) {
-        editor._state.tool = 'arrow';
+        editor.setTool('arrow');
       }
 
       function selectLineTool(e) {
-        editor._state.tool = 'line';
+        editor.setTool('line');
       }
 
       function selectCircleTool(e) {
-        editor._state.tool = 'circle';
+        editor.setTool('circle');
       }
 
       function selectRectangleTool(e) {
-        editor._state.tool = 'rectangle';
+        editor.setTool('rectangle');
       }
     </script>
     <button onclick="selectArrowTool()">arrow</button>

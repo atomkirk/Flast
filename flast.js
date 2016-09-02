@@ -44,6 +44,18 @@ class Flast {
     this.redraw();
   }
 
+  setTool(toolName) {
+    var tool = this.tools.find((tool) => {
+      return tool.name === toolName;
+    });
+    if (tool) {
+      this._state.tool = toolName;
+    }
+    else {
+      console.error("Flask: That tool is not defined.");
+    }
+  }
+
   setTileSize(size) {
     this.tileSize = size;
     this._tileCache = {};
