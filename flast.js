@@ -119,26 +119,29 @@ class Flast {
     this._ctx.lineWidth = 10;
 
     // draw all annotations
-    this.annotations.concat(this._currentAnnotation).forEach(annotation => {
+
+    for (let annotation of this.annotations.concat(this._currentAnnotation)) {
       // only add the current shape to the current annotation
       var shapes = annotation.shapes;
       if (annotation === this._currentAnnotation) {
         shapes = shapes.concat(this._currentShape || []);
       }
       // draw shapes
-      shapes.forEach(shape => {
+      for (let shape of shapes) {
         // find the right tool for the job
         var tool = this.tools.find((tool) => {
           return tool.name === shape.kind;
         });
         tool.drawInContext(this._ctx, shape.geometry);
-      });
-    });
+      }
+    }
+
   }
 
   _addEventListeners() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
+    this._canvas.addEventListener('mouseleave', this._mouseLeave.bind(this), false);
     this._canvas.addEventListener('mouseup', this._mouseUp.bind(this), false);
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false);
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false);
@@ -220,6 +223,13 @@ class Flast {
       var tool = this._currentTool();
       this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
       this.redraw();
+    }
+  }
+
+  _mouseLeave(e) {
+    console.log('here');
+    if (this._state.dragging) {
+      this._state.dragging = false;
     }
   }
 

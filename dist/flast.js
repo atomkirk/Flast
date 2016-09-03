@@ -1,4 +1,4 @@
-var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};
+var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};
 
   function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};
 
@@ -77,7 +77,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   // clear the canvas and draw the tiles
-  proto$0.redraw = function() {var this$0 = this;
+  proto$0.redraw = function() {var $D$0;var $D$1;var $D$2;var $D$3;var $D$4;var $D$5;var $D$6;;var $that$0=this;
     // Clear the entire canvas
     var p1 = this._transformedPoint(0, 0);
     var p2 = this._transformedPoint(this.width, this.height);
@@ -119,26 +119,29 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._ctx.lineWidth = 10;
 
     // draw all annotations
-    this.annotations.concat(this._currentAnnotation).forEach(function(annotation ) {
+
+    $D$3 = (this.annotations.concat(this._currentAnnotation));$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var annotation ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){annotation = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
       // only add the current shape to the current annotation
       var shapes = annotation.shapes;
-      if (annotation === this$0._currentAnnotation) {
-        shapes = shapes.concat(this$0._currentShape || []);
+      if (annotation === this._currentAnnotation) {
+        shapes = shapes.concat(this._currentShape || []);
       }
       // draw shapes
-      shapes.forEach(function(shape ) {
+      $D$4 = GET_ITER$0(shapes);$D$6 = $D$4 === 0;$D$5 = ($D$6 ? shapes.length : void 0);for (var shape ;$D$6 ? ($D$4 < $D$5) : !($D$5 = $D$4["next"]())["done"];){shape = ($D$6 ? shapes[$D$4++] : $D$5["value"]);;var tool;(function(shape){
         // find the right tool for the job
-        var tool = this$0.tools.find(function(tool)  {
+        ;tool = $that$0.tools.find(function(tool)  {
           return tool.name === shape.kind;
         });
-        tool.drawInContext(this$0._ctx, shape.geometry);
-      });
-    });
+        tool.drawInContext($that$0._ctx, shape.geometry);
+      })(shape);};$D$4 = $D$5 = $D$6 = void 0;
+    };$D$0 = $D$1 = $D$2 = $D$3 = void 0;
+
   };
 
   proto$0._addEventListeners = function() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
+    this._canvas.addEventListener('mouseleave', this._mouseLeave.bind(this), false);
     this._canvas.addEventListener('mouseup', this._mouseUp.bind(this), false);
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false);
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false);
@@ -223,7 +226,14 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
   };
 
-  proto$0._keyUp = function(e) {var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};var $D$0;var $D$1;var $D$2;var $D$3;
+  proto$0._mouseLeave = function(e) {
+    console.log('here');
+    if (this._state.dragging) {
+      this._state.dragging = false;
+    }
+  };
+
+  proto$0._keyUp = function(e) {var $D$7;var $D$8;var $D$9;var $D$10;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this._state.drawing = false;
@@ -231,11 +241,11 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       this.redraw();
     }
     else {
-      $D$3 = (this.tools);$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var tool ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){tool = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
+      $D$10 = (this.tools);$D$7 = GET_ITER$0($D$10);$D$9 = $D$7 === 0;$D$8 = ($D$9 ? $D$10.length : void 0);for (var tool ;$D$9 ? ($D$7 < $D$8) : !($D$8 = $D$7["next"]())["done"];){tool = ($D$9 ? $D$10[$D$7++] : $D$8["value"]);
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name;
         }
-      };$D$0 = $D$1 = $D$2 = $D$3 = void 0;
+      };$D$7 = $D$8 = $D$9 = $D$10 = void 0;
     }
   };
 
