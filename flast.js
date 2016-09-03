@@ -24,6 +24,7 @@ class Flast {
 
     this.annotations = options.annotations || [];
 
+    this.callbacks = options.callbacks || {};
 
     // private
     this._canvas = canvas;
@@ -138,6 +139,14 @@ class Flast {
 
   }
 
+  completeAnnotation() {
+    this.annotations.push(this._currentAnnotation);
+    if (this.callbacks.annotationCompleted) {
+      this.callbacks.annotationCompleted(this._currentAnnotation);
+    }
+    this._currentAnnotation = { shapes: [] };
+  }
+
   _addEventListeners() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
@@ -195,14 +204,28 @@ class Flast {
       this._state.drawing = true;
       var pt = this._eventPoint(e);
       var tool = this._currentTool();
+      // set current shape
       this._currentShape = {
         kind: tool.name,
         geometry: tool.startGeometry(pt)
       }
+      // callback
+      if (this.callbacks.beganDrawingShape) {
+        this.callbacks.beganDrawingShape(this._currentShape);
+      }
     }
     else if (this._state.drawing) {
       this._state.drawing = false;
+      // if the annotation doesn't already have shapes
+      if (this._currentAnnotation.shapes.length === 0) {
+        if (this.callbacks.beganAnnotation) {
+          this.callbacks.beganAnnotation(this._currentAnnotation);
+        }
+      }
       this._currentAnnotation.shapes.push(this._currentShape);
+      if (this.callbacks.finishedDrawingShape) {
+        this.callbacks.finishedDrawingShape(this._currentShape);
+      }
       this._currentShape = null;
     }
   }
@@ -236,6 +259,9 @@ class Flast {
   _keyUp(e) {
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
+      if (this.callbacks.cancelledDrawingShape) {
+        this.callbacks.cancelledDrawingShape(this._currentShape);
+      }
       this._state.drawing = false;
       this._currentShape = null;
       this.redraw();
@@ -262,6 +288,9 @@ class Flast {
     var m = this._transform;
     this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
     this.redraw();
+    if (this.callbacks.transformWasUpdated) {
+      this.callbacks.transformWasUpdated(m);
+    }
   }
 
   _clampToBounds() {

@@ -40,7 +40,29 @@
                 radius: 200
               }
             }]
-          }]
+          }],
+          callbacks: {
+            beganAnnotation: function(annotation) {
+              console.log('beganAnnotation');
+              document.querySelector("#js-done-button").style.display = '';
+            },
+            annotationCompleted: function(annotation) {
+              console.log('annotationCompleted');
+              document.querySelector("#js-done-button").style.display = 'none';
+            },
+            beganDrawingShape: function(shape) {
+              console.log('beganDrawingShape');
+            },
+            cancelledDrawingShape: function(shape) {
+              console.log('cancelledDrawingShape');
+            },
+            finishedDrawingShape: function(shape) {
+              console.log('finishedDrawingShape');
+            },
+            transformWasUpdated: function(transform) {
+              console.log('transformWasUpdated');
+            }
+          }
         });
       };
 
@@ -59,10 +81,15 @@
       function selectRectangleTool(e) {
         editor.setTool('rectangle');
       }
+
+      function done(e) {
+        editor.completeAnnotation();
+      }
     </script>
     <button onclick="selectArrowTool()">arrow</button>
     <button onclick="selectLineTool()">line</button>
     <button onclick="selectCircleTool()">circle</button>
     <button onclick="selectRectangleTool()">rectangle</button>
+    <button id="js-done-button" style="display: none;" onclick="done()">done</button>
   </body>
 </html>
