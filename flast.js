@@ -3,6 +3,10 @@ class Flast {
   constructor(canvas, options = {}) {
 
     // public
+    this.width = canvas.clientWidth;
+
+    this.height = canvas.clientHeight;
+
     this.maxZoom = options.maxZoom || 4;
 
     this.zoomSpeed = options.zoomSpeed || 1.01;
@@ -36,6 +40,8 @@ class Flast {
     }
 
     this._addEventListeners();
+    this._configureCanvas();
+
     this.setTileSize(options.tileSize || {
       width: 624,
       height: 416
@@ -63,8 +69,8 @@ class Flast {
       width: this.tileSize.width * Math.pow(2, this.maxZoom),
       height: this.tileSize.height * Math.pow(2, this.maxZoom)
     };
-    var minScaleX = this._canvas.width / this._contentSize.width;
-    var minScaleY = this._canvas.height / this._contentSize.height;
+    var minScaleX = this.width / this._contentSize.width;
+    var minScaleY = this.height / this._contentSize.height;
     this._minScale = Math.max(minScaleX, minScaleY);
   }
 
@@ -72,7 +78,7 @@ class Flast {
   redraw() {
     // Clear the entire canvas
     var p1 = this._transformedPoint(0, 0);
-    var p2 = this._transformedPoint(this._canvas.width, this._canvas.height);
+    var p2 = this._transformedPoint(this.width, this.height);
     var rect = {
       x: p1.x,
       y: p1.y,
@@ -126,6 +132,11 @@ class Flast {
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false);
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false);
     window.addEventListener('keyup', this._keyUp.bind(this), false);
+  }
+
+  _configureCanvas() {
+    this._canvas.setAttribute('width', this.width);
+    this._canvas.setAttribute('height', this.height);
   }
 
   _updateZoom(e) {
@@ -235,8 +246,8 @@ class Flast {
   _clampToBounds() {
     var maxWidth = this._contentSize.width * this._transform.a;
     var maxHeight = this._contentSize.height * this._transform.d;
-    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this._canvas.width), 0);
-    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this._canvas.height), 0);
+    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width), 0);
+    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height), 0);
   }
 
   static clamp(value, min, max) {
