@@ -1,6 +1,6 @@
-class Flast {
+var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};
 
-  constructor(canvas, options = {}) {
+  function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};
 
     // public
     this.width = canvas.clientWidth;
@@ -12,7 +12,7 @@ class Flast {
     this.zoomSpeed = options.zoomSpeed || 1.01;
 
     this.getTileUrl = options.getTileUrl || function(zoom, x, y) {
-      return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+      return (("http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_" + zoom) + ("_" + x) + ("x" + y) + ".jpg");
     };
 
     this.tools = options.tools || [
@@ -50,10 +50,10 @@ class Flast {
     });
 
     this.redraw();
-  }
+  }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
 
-  setTool(toolName) {
-    var tool = this.tools.find((tool) => {
+  proto$0.setTool = function(toolName) {
+    var tool = this.tools.find(function(tool)  {
       return tool.name === toolName;
     });
     if (tool) {
@@ -62,9 +62,9 @@ class Flast {
     else {
       console.error("Flask: That tool is not defined.");
     }
-  }
+  };
 
-  setTileSize(size) {
+  proto$0.setTileSize = function(size) {
     this.tileSize = size;
     this._tileCache = {};
     this._contentSize = {
@@ -74,10 +74,10 @@ class Flast {
     var minScaleX = this.width / this._contentSize.width;
     var minScaleY = this.height / this._contentSize.height;
     this._minScale = Math.max(minScaleX, minScaleY);
-  }
+  };
 
   // clear the canvas and draw the tiles
-  redraw() {
+  proto$0.redraw = function() {var this$0 = this;
     // Clear the entire canvas
     var p1 = this._transformedPoint(0, 0);
     var p2 = this._transformedPoint(this.width, this.height);
@@ -119,38 +119,38 @@ class Flast {
     this._ctx.lineWidth = 10;
 
     // draw all annotations
-    this.annotations.concat(this._currentAnnotation).forEach(annotation => {
+    this.annotations.concat(this._currentAnnotation).forEach(function(annotation ) {
       // only add the current shape to the current annotation
       var shapes = annotation.shapes;
-      if (annotation === this._currentAnnotation) {
-        shapes = shapes.concat(this._currentShape || []);
+      if (annotation === this$0._currentAnnotation) {
+        shapes = shapes.concat(this$0._currentShape || []);
       }
       // draw shapes
-      shapes.forEach(shape => {
+      shapes.forEach(function(shape ) {
         // find the right tool for the job
-        var tool = this.tools.find((tool) => {
+        var tool = this$0.tools.find(function(tool)  {
           return tool.name === shape.kind;
         });
-        tool.drawInContext(this._ctx, shape.geometry);
+        tool.drawInContext(this$0._ctx, shape.geometry);
       });
     });
-  }
+  };
 
-  _addEventListeners() {
+  proto$0._addEventListeners = function() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
     this._canvas.addEventListener('mouseup', this._mouseUp.bind(this), false);
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false);
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false);
     window.addEventListener('keyup', this._keyUp.bind(this), false);
-  }
+  };
 
-  _configureCanvas() {
+  proto$0._configureCanvas = function() {
     this._canvas.setAttribute('width', this.width);
     this._canvas.setAttribute('height', this.height);
-  }
+  };
 
-  _updateZoom(e) {
+  proto$0._updateZoom = function(e) {
     var delta = e.wheelDelta ? e.wheelDelta / 40 : (e.detail ? -e.detail : 0);
     if (delta) {
       var pt = this._eventPoint(e);
@@ -174,15 +174,15 @@ class Flast {
       this._updateTransform();
     }
     return e.preventDefault() && false;
-  }
+  };
 
-  _mouseDown(e) {
+  proto$0._mouseDown = function(e) {
     this._state.mouse = 'down';
     document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
     this._dragStart = this._eventPoint(e);
-  }
+  };
 
-  _mouseUp(e) {
+  proto$0._mouseUp = function(e) {
     this._state.mouse = 'up';
     // draw
     if (this._state.dragging) {
@@ -202,9 +202,9 @@ class Flast {
       this._currentAnnotation.push(this._currentShape);
       this._currentShape = null;
     }
-  }
+  };
 
-  _mouseMove(e) {
+  proto$0._mouseMove = function(e) {
     var pt = this._eventPoint(e);
     if (this._state.mouse === 'down' && !this._state.dragging) {
       this._state.dragging = true;
@@ -221,9 +221,9 @@ class Flast {
       this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
       this.redraw();
     }
-  }
+  };
 
-  _keyUp(e) {
+  proto$0._keyUp = function(e) {var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};var $D$0;var $D$1;var $D$2;var $D$3;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this._state.drawing = false;
@@ -231,61 +231,61 @@ class Flast {
       this.redraw();
     }
     else {
-      for (let tool of this.tools) {
+      $D$3 = (this.tools);$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var tool ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){tool = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name;
         }
-      }
+      };$D$0 = $D$1 = $D$2 = $D$3 = void 0;
     }
-  }
+  };
 
   // transform the point from page space to canvas space
-  _transformedPoint(x, y) {
+  proto$0._transformedPoint = function(x, y) {
     var pt  = this._svg.createSVGPoint();
     pt.x = x;
     pt.y = y;
     return pt.matrixTransform(this._transform.inverse());
-  }
+  };
 
   // set the transform on the context
-  _updateTransform() {
+  proto$0._updateTransform = function() {
     var m = this._transform;
     this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
     this.redraw();
-  }
+  };
 
-  _clampToBounds() {
+  proto$0._clampToBounds = function() {
     var maxWidth = this._contentSize.width * this._transform.a;
     var maxHeight = this._contentSize.height * this._transform.d;
     this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width), 0);
     this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height), 0);
-  }
+  };
 
-  static clamp(value, min, max) {
+  static$0.clamp = function(value, min, max) {
     return Math.max(Math.min(value, max), min);
-  }
+  };
 
-  _eventPoint(e) {
+  proto$0._eventPoint = function(e) {
     var x = e.offsetX || (e.pageX - this._canvas.offsetLeft);
     var y = e.offsetY || (e.pageY - this._canvas.offsetTop);
     return this._transformedPoint(x, y);
-  }
+  };
 
-  _tileImage(zoom, x, y) {
+  proto$0._tileImage = function(zoom, x, y) {var this$0 = this;
     var url = this.getTileUrl(zoom, x, y);
     var image = this._tileCache[url];
     if (!image) {
       image = new Image;
       image.src = url;
-      image.onload = () => {
-        this.redraw();
+      image.onload = function()  {
+        this$0.redraw();
       };
       this._tileCache[url] = image;
     }
     return image;
-  }
+  };
 
-  _intersectRect(r1, r2) {
+  proto$0._intersectRect = function(r1, r2) {
     r1 = {
       left: r1.x,
       right: r1.x + r1.width,
@@ -302,15 +302,15 @@ class Flast {
              r2.right < r1.left ||
              r2.top > r1.bottom ||
              r2.bottom < r1.top);
-  }
+  };
 
-  _currentTool() {
-    return this.tools.find((tool) => {
-      return tool.name === this._state.tool;
+  proto$0._currentTool = function() {var this$0 = this;
+    return this.tools.find(function(tool)  {
+      return tool.name === this$0._state.tool;
     });
-  }
+  };
 
-  static get ARROW() {
+  function $static_ARROW_get$0() {
     return {
       name: 'arrow',
       keyCode: 65,
@@ -325,8 +325,8 @@ class Flast {
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
-        let p1 = geometry.p1;
-        let p2 = geometry.p2;
+        var p1 = geometry.p1;
+        var p2 = geometry.p2;
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
@@ -354,9 +354,9 @@ class Flast {
         ctx.fill();
       }
     };
-  }
+  };DPS$0(Flast,{ARROW: {"get": $static_ARROW_get$0, "configurable":true,"enumerable":true}, LINE: {"get": $static_LINE_get$0, "configurable":true,"enumerable":true}, CIRCLE: {"get": $static_CIRCLE_get$0, "configurable":true,"enumerable":true}, RECTANGLE: {"get": $static_RECTANGLE_get$0, "configurable":true,"enumerable":true}});
 
-  static get LINE() {
+  function $static_LINE_get$0() {
     return {
       name: 'line',
       keyCode: 76,
@@ -371,8 +371,8 @@ class Flast {
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
-        let p1 = geometry.p1;
-        let p2 = geometry.p2;
+        var p1 = geometry.p1;
+        var p2 = geometry.p2;
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
@@ -381,7 +381,7 @@ class Flast {
     };
   }
 
-  static get CIRCLE() {
+  function $static_CIRCLE_get$0() {
     return {
       name: 'circle',
       keyCode: 67,
@@ -405,7 +405,7 @@ class Flast {
     };
   }
 
-  static get RECTANGLE() {
+  function $static_RECTANGLE_get$0() {
     return {
       name: 'rectangle',
       keyCode: 82,
@@ -420,8 +420,8 @@ class Flast {
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
-        let p1 = geometry.p1;
-        let p2 = geometry.p2;
+        var p1 = geometry.p1;
+        var p2 = geometry.p2;
         ctx.beginPath();
         ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
         ctx.stroke();
@@ -429,4 +429,4 @@ class Flast {
     };
   }
 
-}
+MIXIN$0(Flast,static$0);MIXIN$0(Flast.prototype,proto$0);static$0=proto$0=void 0;return Flast;})();
