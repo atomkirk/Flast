@@ -31,7 +31,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._dragStart;
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
-    this._currentAnnotation = [];
+    this._currentAnnotation = { shapes: [] };
     this._currentShape;
     this._maxScale = 2;
     this._state = {
@@ -122,7 +122,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     $D$3 = (this.annotations.concat(this._currentAnnotation));$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var annotation ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){annotation = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
       // only add the current shape to the current annotation
-      var shapes = annotation.shapes;
+      var shapes = annotation.shapes || [];
       if (annotation === this._currentAnnotation) {
         shapes = shapes.concat(this._currentShape || []);
       }
@@ -202,7 +202,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
     else if (this._state.drawing) {
       this._state.drawing = false;
-      this._currentAnnotation.push(this._currentShape);
+      this._currentAnnotation.shapes.push(this._currentShape);
       this._currentShape = null;
     }
   };
@@ -227,9 +227,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0._mouseLeave = function(e) {
-    console.log('here');
     if (this._state.dragging) {
       this._state.dragging = false;
+      this._state.mouse = 'up';
     }
   };
 

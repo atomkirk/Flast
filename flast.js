@@ -31,7 +31,7 @@ class Flast {
     this._dragStart;
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
-    this._currentAnnotation = [];
+    this._currentAnnotation = { shapes: [] };
     this._currentShape;
     this._maxScale = 2;
     this._state = {
@@ -122,7 +122,7 @@ class Flast {
 
     for (let annotation of this.annotations.concat(this._currentAnnotation)) {
       // only add the current shape to the current annotation
-      var shapes = annotation.shapes;
+      let shapes = annotation.shapes || [];
       if (annotation === this._currentAnnotation) {
         shapes = shapes.concat(this._currentShape || []);
       }
@@ -202,7 +202,7 @@ class Flast {
     }
     else if (this._state.drawing) {
       this._state.drawing = false;
-      this._currentAnnotation.push(this._currentShape);
+      this._currentAnnotation.shapes.push(this._currentShape);
       this._currentShape = null;
     }
   }
@@ -227,9 +227,9 @@ class Flast {
   }
 
   _mouseLeave(e) {
-    console.log('here');
     if (this._state.dragging) {
       this._state.dragging = false;
+      this._state.mouse = 'up';
     }
   }
 
