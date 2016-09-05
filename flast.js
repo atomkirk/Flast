@@ -111,6 +111,29 @@ class Flast {
           if (image.complete && image.naturalHeight !== 0) {
             this._ctx.drawImage(image, tile.x, tile.y, tile.width, tile.height);
           }
+          // if the tile at that zoom level is not loaded, show the lower
+          // res version at the lower zoom level
+          else {
+            let zl = zoomLevel - 1;
+            while (zl > 0) {
+              let parentJ = Math.floor((j / Math.pow(2, zoomLevel)) * Math.pow(2, zl));
+              let parentK = Math.floor((k / Math.pow(2, zoomLevel)) * Math.pow(2, zl));
+              let image = this._tileImage(zl, parentJ, parentK);
+              if (image.complete && image.naturalHeight !== 0) {
+                let childTilesPerParent = Math.pow(2, zoomLevel) / Math.pow(2, zl);
+                let jRemainder = j - (childTilesPerParent * parentJ);
+                let kRemainder = k - (childTilesPerParent * parentK);
+                let sWidth = image.width / childTilesPerParent;
+                let sHeight = image.height / childTilesPerParent;
+                console.log('zl', zl);
+                let sx = Math.floor(jRemainder * sWidth);
+                let sy = Math.floor(kRemainder * sHeight);
+                this._ctx.drawImage(image, sx, sy, sWidth, sHeight, tile.x, tile.y, tile.width, tile.height);
+                break;
+              }
+              zl -= 1;
+            }
+          }
         }
       }
     }
