@@ -472,14 +472,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.fill();
       },
       hitTest: function(geometry, pt) {
-        var dxc = pt.x - geometry.p1.x;
-        var dyc = pt.y - geometry.p1.y;
-
-        var dxl = geometry.p2.x - geometry.p1.x;
-        var dyl = geometry.p2.y - geometry.p1.y;
-
-        var cross = dxc * dyl - dyc * dxl;
-        return Math.abs(cross) < 20000;
+        return Flast._onLine(geometry, pt);
       }
     };
   };DPS$0(Flast,{ARROW: {"get": $static_ARROW_get$0, "configurable":true,"enumerable":true}, LINE: {"get": $static_LINE_get$0, "configurable":true,"enumerable":true}, CIRCLE: {"get": $static_CIRCLE_get$0, "configurable":true,"enumerable":true}, RECTANGLE: {"get": $static_RECTANGLE_get$0, "configurable":true,"enumerable":true}});
@@ -507,14 +500,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        var dxc = pt.x - geometry.p1.x;
-        var dyc = pt.y - geometry.p1.y;
-
-        var dxl = geometry.p2.x - geometry.p1.x;
-        var dyl = geometry.p2.y - geometry.p1.y;
-
-        var cross = dxc * dyl - dyc * dxl;
-        return Math.abs(cross) < 20000;
+        return Flast._onLine(geometry, pt);
       }
     };
   }
@@ -582,5 +568,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       }
     };
   }
+
+  static$0._onLine = function(line, point) {
+    var dxc = point.x - line.p1.x;
+    var dyc = point.y - line.p1.y;
+
+    var dxl = line.p2.x - line.p1.x;
+    var dyl = line.p2.y - line.p1.y;
+
+    var cross = dxc * dyl - dyc * dxl;
+
+    return Math.abs(cross) < 20000 &&
+           point.x < Math.max(line.p1.x, line.p2.x) + 10 &&
+           point.x > Math.min(line.p1.x, line.p2.x) - 10 &&
+           point.y < Math.max(line.p1.y, line.p2.y) + 10 &&
+           point.y > Math.min(line.p1.y, line.p2.y) - 10;
+  };
 
 MIXIN$0(Flast,static$0);MIXIN$0(Flast.prototype,proto$0);static$0=proto$0=void 0;return Flast;})();

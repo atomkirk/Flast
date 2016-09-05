@@ -472,14 +472,7 @@ class Flast {
         ctx.fill();
       },
       hitTest: function(geometry, pt) {
-        let dxc = pt.x - geometry.p1.x;
-        let dyc = pt.y - geometry.p1.y;
-
-        let dxl = geometry.p2.x - geometry.p1.x;
-        let dyl = geometry.p2.y - geometry.p1.y;
-
-        let cross = dxc * dyl - dyc * dxl;
-        return Math.abs(cross) < 20000;
+        return Flast._onLine(geometry, pt);
       }
     };
   }
@@ -507,14 +500,7 @@ class Flast {
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        let dxc = pt.x - geometry.p1.x;
-        let dyc = pt.y - geometry.p1.y;
-
-        let dxl = geometry.p2.x - geometry.p1.x;
-        let dyl = geometry.p2.y - geometry.p1.y;
-
-        let cross = dxc * dyl - dyc * dxl;
-        return Math.abs(cross) < 20000;
+        return Flast._onLine(geometry, pt);
       }
     };
   }
@@ -581,6 +567,22 @@ class Flast {
         }
       }
     };
+  }
+
+  static _onLine(line, point) {
+    let dxc = point.x - line.p1.x;
+    let dyc = point.y - line.p1.y;
+
+    let dxl = line.p2.x - line.p1.x;
+    let dyl = line.p2.y - line.p1.y;
+
+    let cross = dxc * dyl - dyc * dxl;
+
+    return Math.abs(cross) < 20000 &&
+           point.x < Math.max(line.p1.x, line.p2.x) + 10 &&
+           point.x > Math.min(line.p1.x, line.p2.x) - 10 &&
+           point.y < Math.max(line.p1.y, line.p2.y) + 10 &&
+           point.y > Math.min(line.p1.y, line.p2.y) - 10;
   }
 
 }
