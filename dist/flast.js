@@ -444,6 +444,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       drawInContext: function(ctx, geometry) {
         var p1 = geometry.p1;
         var p2 = geometry.p2;
+        var arrowHeight = 60.0;
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
@@ -452,7 +453,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
           dy: p2.y - p1.y
         }
         var length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
-        var percent = (length - 20.0) / length;
+        var percent = (length - arrowHeight) / length;
         ctx.lineTo(p1.x + (vector.dx * percent), p1.y + (vector.dy * percent));
         ctx.stroke();
 
@@ -464,8 +465,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.translate(p2.x, p2.y);
         ctx.rotate(radians);
         ctx.moveTo(0, 0);
-        ctx.lineTo(15, 60);
-        ctx.lineTo(-15, 60);
+        ctx.lineTo(15, arrowHeight);
+        ctx.lineTo(-15, arrowHeight);
         ctx.closePath();
         ctx.restore();
         ctx.fill();
@@ -570,13 +571,13 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       },
       hitTest: function(geometry, pt) {var $D$19;var $D$20;var $D$21;
         var distances = [
-          Math.abs(geometry.p1.x - pt.x) < 10,
-          Math.abs(geometry.p2.x - pt.x) < 10,
-          Math.abs(geometry.p1.y - pt.y) < 10,
-          Math.abs(geometry.p2.y - pt.y) < 10
+          Math.abs(geometry.p1.x - pt.x),
+          Math.abs(geometry.p2.x - pt.x),
+          Math.abs(geometry.p1.y - pt.y),
+          Math.abs(geometry.p2.y - pt.y)
         ];
         $D$19 = GET_ITER$0(distances);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? distances.length : void 0);for (var dist ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){dist = ($D$21 ? distances[$D$19++] : $D$20["value"]);
-          if (dist) return true;
+          if (dist < 10) return true;
         };$D$19 = $D$20 = $D$21 = void 0;
       }
     };

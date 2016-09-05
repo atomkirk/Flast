@@ -444,6 +444,7 @@ class Flast {
       drawInContext: function(ctx, geometry) {
         let p1 = geometry.p1;
         let p2 = geometry.p2;
+        let arrowHeight = 60.0;
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
@@ -452,7 +453,7 @@ class Flast {
           dy: p2.y - p1.y
         }
         let length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
-        let percent = (length - 20.0) / length;
+        let percent = (length - arrowHeight) / length;
         ctx.lineTo(p1.x + (vector.dx * percent), p1.y + (vector.dy * percent));
         ctx.stroke();
 
@@ -464,8 +465,8 @@ class Flast {
         ctx.translate(p2.x, p2.y);
         ctx.rotate(radians);
         ctx.moveTo(0, 0);
-        ctx.lineTo(15, 60);
-        ctx.lineTo(-15, 60);
+        ctx.lineTo(15, arrowHeight);
+        ctx.lineTo(-15, arrowHeight);
         ctx.closePath();
         ctx.restore();
         ctx.fill();
@@ -570,13 +571,13 @@ class Flast {
       },
       hitTest: function(geometry, pt) {
         let distances = [
-          Math.abs(geometry.p1.x - pt.x) < 10,
-          Math.abs(geometry.p2.x - pt.x) < 10,
-          Math.abs(geometry.p1.y - pt.y) < 10,
-          Math.abs(geometry.p2.y - pt.y) < 10
+          Math.abs(geometry.p1.x - pt.x),
+          Math.abs(geometry.p2.x - pt.x),
+          Math.abs(geometry.p1.y - pt.y),
+          Math.abs(geometry.p2.y - pt.y)
         ];
         for (let dist of distances) {
-          if (dist) return true;
+          if (dist < 10) return true;
         }
       }
     };
