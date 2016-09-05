@@ -152,8 +152,10 @@ class Flast {
   }
 
   completeAnnotation() {
-    if (this._currentAnnotation && this.annotations.indexOf(this._currentAnnotation) < 0) {
-      this.annotations.push(this._currentAnnotation);
+    if (this._currentAnnotation) {
+      if (this.annotations.indexOf(this._currentAnnotation) < 0) {
+        this.annotations.push(this._currentAnnotation);
+      }
       if (this.callbacks.annotationCompleted) {
         this.callbacks.annotationCompleted(this._currentAnnotation);
       }
@@ -482,7 +484,14 @@ class Flast {
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
+        let dxc = pt.x - geometry.p1.x;
+        let dyc = pt.y - geometry.p1.y;
 
+        let dxl = geometry.p2.x - geometry.p1.x;
+        let dyl = geometry.p2.y - geometry.p1.y;
+
+        let cross = dxc * dyl - dyc * dxl;
+        return Math.abs(cross) < 20000;
       }
     };
   }
@@ -538,7 +547,15 @@ class Flast {
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-
+        var distances = [
+          Math.abs(geometry.p1.x - pt.x) < 10,
+          Math.abs(geometry.p2.x - pt.x) < 10,
+          Math.abs(geometry.p1.y - pt.y) < 10,
+          Math.abs(geometry.p2.y - pt.y) < 10
+        ];
+        for (let dist of distances) {
+          if (dist) return true;
+        }
       }
     };
   }
