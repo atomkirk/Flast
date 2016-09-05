@@ -24,6 +24,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     this.annotations = options.annotations || [];
 
+    this.callbacks = options.callbacks || {};
 
     // private
     this._canvas = canvas;
@@ -31,8 +32,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._dragStart;
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
-    this._currentAnnotation = { shapes: [] };
-    this._currentShape;
+    this._currentAnnotation = null;
+    this._currentShape = null;
     this._maxScale = 2;
     this._state = {
       mouse: 'up', // 'down'
@@ -58,6 +59,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     });
     if (tool) {
       this._state.tool = toolName;
+      this.redraw();
     }
     else {
       console.error("Flask: That tool is not defined.");
@@ -109,33 +111,80 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
           if (image.complete && image.naturalHeight !== 0) {
             this._ctx.drawImage(image, tile.x, tile.y, tile.width, tile.height);
           }
+          // if the tile at that zoom level is not loaded, show the lower
+          // res version at the lower zoom level
+          else {
+            var zl = zoomLevel - 1;
+            while (zl > 0) {
+              var parentJ = Math.floor((j / Math.pow(2, zoomLevel)) * Math.pow(2, zl));
+              var parentK = Math.floor((k / Math.pow(2, zoomLevel)) * Math.pow(2, zl));
+              var image$0 = this._tileImage(zl, parentJ, parentK);
+              if (image$0.complete && image$0.naturalHeight !== 0) {
+                var childTilesPerParent = Math.pow(2, zoomLevel) / Math.pow(2, zl);
+                var jRemainder = j - (childTilesPerParent * parentJ);
+                var kRemainder = k - (childTilesPerParent * parentK);
+                var sWidth = image$0.width / childTilesPerParent;
+                var sHeight = image$0.height / childTilesPerParent;
+                var sx = Math.floor(jRemainder * sWidth);
+                var sy = Math.floor(kRemainder * sHeight);
+                this._ctx.drawImage(image$0, sx, sy, sWidth, sHeight, tile.x, tile.y, tile.width, tile.height);
+                break;
+              }
+              zl -= 1;
+            }
+          }
         }
       }
     }
 
-    // set how annotations should look
-    this._ctx.fillStyle = '#FF0000';
-    this._ctx.strokeStyle = '#FF0000';
-    this._ctx.lineWidth = 10;
+    // draw in-progress annotation/shapes
+    var currentAnnotation = this._currentAnnotation || { shapes: [] };
 
     // draw all annotations
-
-    $D$3 = (this.annotations.concat(this._currentAnnotation));$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var annotation ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){annotation = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
-      // only add the current shape to the current annotation
-      var shapes = annotation.shapes || [];
-      if (annotation === this._currentAnnotation) {
+    $D$3 = (this.annotations.concat(currentAnnotation));$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var annotation ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){annotation = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
+      // when drawing, fade out all other shapes except the current annotation
+      if (!this._currentAnnotation || annotation === this._currentAnnotation) {
+        this._ctx.globalAlpha = 1.0;
+      }
+      else {
+        this._ctx.globalAlpha = 0.2;
+      }
+      // draw in-progress shapes
+      var shapes = annotation.shapes;
+      if (annotation === currentAnnotation) {
         shapes = shapes.concat(this._currentShape || []);
       }
       // draw shapes
-      $D$4 = GET_ITER$0(shapes);$D$6 = $D$4 === 0;$D$5 = ($D$6 ? shapes.length : void 0);for (var shape ;$D$6 ? ($D$4 < $D$5) : !($D$5 = $D$4["next"]())["done"];){shape = ($D$6 ? shapes[$D$4++] : $D$5["value"]);;var tool;(function(shape){
+      $D$4 = GET_ITER$0(shapes);$D$6 = $D$4 === 0;$D$5 = ($D$6 ? shapes.length : void 0);for (var shape ;$D$6 ? ($D$4 < $D$5) : !($D$5 = $D$4["next"]())["done"];){shape = ($D$6 ? shapes[$D$4++] : $D$5["value"]);(function(shape){
         // find the right tool for the job
-        ;tool = $that$0.tools.find(function(tool)  {
+        var tool = $that$0.tools.find(function(tool)  {
           return tool.name === shape.kind;
         });
+
+        // set how shape should look by default
+        // (can be overriden in drawInContext)
+        $that$0._ctx.fillStyle = '#FF0000';
+        $that$0._ctx.strokeStyle = '#FF0000';
+        $that$0._ctx.lineWidth = 10;
+
         tool.drawInContext($that$0._ctx, shape.geometry);
       })(shape);};$D$4 = $D$5 = $D$6 = void 0;
     };$D$0 = $D$1 = $D$2 = $D$3 = void 0;
+    this._ctx.globalAlpha = 1.0;
+  };
 
+  proto$0.completeAnnotation = function() {
+    if (this._currentAnnotation) {
+      if (this.annotations.indexOf(this._currentAnnotation) < 0) {
+        this.annotations.push(this._currentAnnotation);
+      }
+      if (this.callbacks.annotationCompleted) {
+        this.callbacks.annotationCompleted(this._currentAnnotation);
+      }
+    }
+    this._currentAnnotation = null;
+    this._state.tool = 'none';
+    this.redraw();
   };
 
   proto$0._addEventListeners = function() {
@@ -181,29 +230,81 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
   proto$0._mouseDown = function(e) {
     this._state.mouse = 'down';
-    document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+    document.body.style.mozUserSelect =
+      document.body.style.webkitUserSelect =
+      document.body.style.userSelect = 'none';
     this._dragStart = this._eventPoint(e);
   };
 
-  proto$0._mouseUp = function(e) {
+  proto$0._mouseUp = function(e) {var $D$7;var $D$8;var $D$9;var $D$10;var $D$11;var $D$12;var $D$13;var $D$14;;var $that$0=this;
     this._state.mouse = 'up';
-    // draw
+
+    // stop dragging
     if (this._state.dragging) {
       this._state.dragging = false;
     }
+
+    // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none') {
       this._state.drawing = true;
       var pt = this._eventPoint(e);
       var tool = this._currentTool();
+      // set current shape
       this._currentShape = {
         kind: tool.name,
         geometry: tool.startGeometry(pt)
       }
+      // callback
+      if (this.callbacks.beganDrawingShape) {
+        this.callbacks.beganDrawingShape(this._currentShape);
+      }
     }
+
+    // stop drawing
     else if (this._state.drawing) {
       this._state.drawing = false;
+      // if there is not a current annotation
+      if (!this._currentAnnotation) {
+        // start new annotation
+        this._currentAnnotation = { shapes: [] };
+        // callback
+        if (this.callbacks.editingAnnotation) {
+          this.callbacks.editingAnnotation(this._currentAnnotation);
+        }
+      }
+      // add shape to current annotation
       this._currentAnnotation.shapes.push(this._currentShape);
+      // callback
+      if (this.callbacks.finishedDrawingShape) {
+        this.callbacks.finishedDrawingShape(this._currentShape);
+      }
       this._currentShape = null;
+      this.redraw();
+    }
+
+    // if nothing already selected
+    else if (!this._currentAnnotation) {
+      // if mouse up over a shape
+      var pt$0 = this._eventPoint(e);
+      $D$10 = (this.annotations);$D$7 = GET_ITER$0($D$10);$D$9 = $D$7 === 0;$D$8 = ($D$9 ? $D$10.length : void 0);for (var annotation ;$D$9 ? ($D$7 < $D$8) : !($D$8 = $D$7["next"]())["done"];){annotation = ($D$9 ? $D$10[$D$7++] : $D$8["value"]);
+        $D$14 = (annotation.shapes);$D$11 = GET_ITER$0($D$14);$D$13 = $D$11 === 0;$D$12 = ($D$13 ? $D$14.length : void 0);for (var shape ;$D$13 ? ($D$11 < $D$12) : !($D$12 = $D$11["next"]())["done"];){shape = ($D$13 ? $D$14[$D$11++] : $D$12["value"]);;var $retVoid$0;(function(shape){
+          // find the tool that drew this shape
+          var tool = $that$0.tools.find(function(tool)  {
+            return tool.name === shape.kind;
+          });
+          if (tool.hitTest(shape.geometry, pt$0)) {
+            if ($that$0.callbacks.annotationSelected) {
+              $that$0.callbacks.annotationSelected(annotation);
+              $that$0._currentAnnotation = annotation;
+              if ($that$0.callbacks.editingAnnotation) {
+                $that$0.callbacks.editingAnnotation(annotation);
+              }
+              $that$0.redraw();
+              {$retVoid$0 = true;return}
+            }
+          }
+        })(shape);if($retVoid$0===true){$retVoid$0=void 0;return}};$D$11 = $D$12 = $D$13 = $D$14 = void 0;
+      };$D$7 = $D$8 = $D$9 = $D$10 = void 0;
     }
   };
 
@@ -233,19 +334,22 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
   };
 
-  proto$0._keyUp = function(e) {var $D$7;var $D$8;var $D$9;var $D$10;
+  proto$0._keyUp = function(e) {var $D$15;var $D$16;var $D$17;var $D$18;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
+      if (this.callbacks.cancelledDrawingShape) {
+        this.callbacks.cancelledDrawingShape(this._currentShape);
+      }
       this._state.drawing = false;
       this._currentShape = null;
       this.redraw();
     }
     else {
-      $D$10 = (this.tools);$D$7 = GET_ITER$0($D$10);$D$9 = $D$7 === 0;$D$8 = ($D$9 ? $D$10.length : void 0);for (var tool ;$D$9 ? ($D$7 < $D$8) : !($D$8 = $D$7["next"]())["done"];){tool = ($D$9 ? $D$10[$D$7++] : $D$8["value"]);
+      $D$18 = (this.tools);$D$15 = GET_ITER$0($D$18);$D$17 = $D$15 === 0;$D$16 = ($D$17 ? $D$18.length : void 0);for (var tool ;$D$17 ? ($D$15 < $D$16) : !($D$16 = $D$15["next"]())["done"];){tool = ($D$17 ? $D$18[$D$15++] : $D$16["value"]);
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name;
         }
-      };$D$7 = $D$8 = $D$9 = $D$10 = void 0;
+      };$D$15 = $D$16 = $D$17 = $D$18 = void 0;
     }
   };
 
@@ -262,6 +366,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     var m = this._transform;
     this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
     this.redraw();
+    if (this.callbacks.transformWasUpdated) {
+      this.callbacks.transformWasUpdated(m);
+    }
   };
 
   proto$0._clampToBounds = function() {
@@ -362,6 +469,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.closePath();
         ctx.restore();
         ctx.fill();
+      },
+      hitTest: function(geometry, pt) {
+        var dxc = pt.x - geometry.p1.x;
+        var dyc = pt.y - geometry.p1.y;
+
+        var dxl = geometry.p2.x - geometry.p1.x;
+        var dyl = geometry.p2.y - geometry.p1.y;
+
+        var cross = dxc * dyl - dyc * dxl;
+        return Math.abs(cross) < 20000;
       }
     };
   };DPS$0(Flast,{ARROW: {"get": $static_ARROW_get$0, "configurable":true,"enumerable":true}, LINE: {"get": $static_LINE_get$0, "configurable":true,"enumerable":true}, CIRCLE: {"get": $static_CIRCLE_get$0, "configurable":true,"enumerable":true}, RECTANGLE: {"get": $static_RECTANGLE_get$0, "configurable":true,"enumerable":true}});
@@ -387,6 +504,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+        var dxc = pt.x - geometry.p1.x;
+        var dyc = pt.y - geometry.p1.y;
+
+        var dxl = geometry.p2.x - geometry.p1.x;
+        var dyl = geometry.p2.y - geometry.p1.y;
+
+        var cross = dxc * dyl - dyc * dxl;
+        return Math.abs(cross) < 20000;
       }
     };
   }
@@ -411,6 +538,11 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.beginPath();
         ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+        var distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
+                       Math.pow(pt.y - geometry.center.y, 2));
+        return Math.abs(distance - geometry.radius) < 10;
       }
     };
   }
@@ -435,6 +567,17 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.beginPath();
         ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {var $D$19;var $D$20;var $D$21;
+        var distances = [
+          Math.abs(geometry.p1.x - pt.x) < 10,
+          Math.abs(geometry.p2.x - pt.x) < 10,
+          Math.abs(geometry.p1.y - pt.y) < 10,
+          Math.abs(geometry.p2.y - pt.y) < 10
+        ];
+        $D$19 = GET_ITER$0(distances);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? distances.length : void 0);for (var dist ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){dist = ($D$21 ? distances[$D$19++] : $D$20["value"]);
+          if (dist) return true;
+        };$D$19 = $D$20 = $D$21 = void 0;
       }
     };
   }

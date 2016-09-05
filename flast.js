@@ -54,7 +54,7 @@ class Flast {
   }
 
   setTool(toolName) {
-    var tool = this.tools.find((tool) => {
+    let tool = this.tools.find((tool) => {
       return tool.name === toolName;
     });
     if (tool) {
@@ -73,41 +73,41 @@ class Flast {
       width: this.tileSize.width * Math.pow(2, this.maxZoom),
       height: this.tileSize.height * Math.pow(2, this.maxZoom)
     };
-    var minScaleX = this.width / this._contentSize.width;
-    var minScaleY = this.height / this._contentSize.height;
+    let minScaleX = this.width / this._contentSize.width;
+    let minScaleY = this.height / this._contentSize.height;
     this._minScale = Math.max(minScaleX, minScaleY);
   }
 
   // clear the canvas and draw the tiles
   redraw() {
     // Clear the entire canvas
-    var p1 = this._transformedPoint(0, 0);
-    var p2 = this._transformedPoint(this.width, this.height);
-    var rect = {
+    let p1 = this._transformedPoint(0, 0);
+    let p2 = this._transformedPoint(this.width, this.height);
+    let rect = {
       x: p1.x,
       y: p1.y,
       width: p2.x - p1.x,
       height: p2.y - p1.y
     }
     this._ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
-    var mins = Math.log(this._minScale) / Math.LN2;
-    var maxs = Math.log(this._maxScale) / Math.LN2;
-    var s = Math.log(this._transform.a) / Math.LN2;
-    var zoomPercent = (s - mins) / (maxs - mins);
-    var zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
-    var numTiles = Math.pow(2, zoomLevel);
-    var tileWidth = this._contentSize.width / numTiles;
-    var tileHeight = this._contentSize.height / numTiles;
-    for (var j = 0; j < numTiles; j++) {
-      for (var k = 0; k < numTiles; k++) {
-        var tile = {
+    let mins = Math.log(this._minScale) / Math.LN2;
+    let maxs = Math.log(this._maxScale) / Math.LN2;
+    let s = Math.log(this._transform.a) / Math.LN2;
+    let zoomPercent = (s - mins) / (maxs - mins);
+    let zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
+    let numTiles = Math.pow(2, zoomLevel);
+    let tileWidth = this._contentSize.width / numTiles;
+    let tileHeight = this._contentSize.height / numTiles;
+    for (let j = 0; j < numTiles; j++) {
+      for (let k = 0; k < numTiles; k++) {
+        let tile = {
           x: Math.floor(j * tileWidth),
           y: Math.floor(k * tileHeight),
           width: Math.floor(tileWidth),
           height: Math.floor(tileHeight)
         }
         if (this._intersectRect(rect, tile)) {
-          var image = this._tileImage(zoomLevel, j, k);
+          let image = this._tileImage(zoomLevel, j, k);
           if (image.complete && image.naturalHeight !== 0) {
             this._ctx.drawImage(image, tile.x, tile.y, tile.width, tile.height);
           }
@@ -138,7 +138,7 @@ class Flast {
     }
 
     // draw in-progress annotation/shapes
-    var currentAnnotation = this._currentAnnotation || { shapes: [] };
+    let currentAnnotation = this._currentAnnotation || { shapes: [] };
 
     // draw all annotations
     for (let annotation of this.annotations.concat(currentAnnotation)) {
@@ -157,7 +157,7 @@ class Flast {
       // draw shapes
       for (let shape of shapes) {
         // find the right tool for the job
-        var tool = this.tools.find((tool) => {
+        let tool = this.tools.find((tool) => {
           return tool.name === shape.kind;
         });
 
@@ -203,17 +203,17 @@ class Flast {
   }
 
   _updateZoom(e) {
-    var delta = e.wheelDelta ? e.wheelDelta / 40 : (e.detail ? -e.detail : 0);
+    let delta = e.wheelDelta ? e.wheelDelta / 40 : (e.detail ? -e.detail : 0);
     if (delta) {
-      var pt = this._eventPoint(e);
+      let pt = this._eventPoint(e);
 
       // update any shape that is currently being drawn
       if (this._currentShape) {
         this._currentShape.geometry.p2 = pt;
       }
 
-      var factor = Math.pow(this.zoomSpeed, delta);
-      var scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
+      let factor = Math.pow(this.zoomSpeed, delta);
+      let scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);
@@ -247,8 +247,8 @@ class Flast {
     // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none') {
       this._state.drawing = true;
-      var pt = this._eventPoint(e);
-      var tool = this._currentTool();
+      let pt = this._eventPoint(e);
+      let tool = this._currentTool();
       // set current shape
       this._currentShape = {
         kind: tool.name,
@@ -285,11 +285,11 @@ class Flast {
     // if nothing already selected
     else if (!this._currentAnnotation) {
       // if mouse up over a shape
-      var pt = this._eventPoint(e);
+      let pt = this._eventPoint(e);
       for (let annotation of this.annotations) {
         for (let shape of annotation.shapes) {
           // find the tool that drew this shape
-          var tool = this.tools.find((tool) => {
+          let tool = this.tools.find((tool) => {
             return tool.name === shape.kind;
           });
           if (tool.hitTest(shape.geometry, pt)) {
@@ -309,19 +309,19 @@ class Flast {
   }
 
   _mouseMove(e) {
-    var pt = this._eventPoint(e);
+    let pt = this._eventPoint(e);
     if (this._state.mouse === 'down' && !this._state.dragging) {
       this._state.dragging = true;
     }
     if (this._state.dragging) {
-      var dx = (pt.x - this._dragStart.x);
-      var dy = (pt.y - this._dragStart.y);
+      let dx = (pt.x - this._dragStart.x);
+      let dy = (pt.y - this._dragStart.y);
       this._transform = this._transform.translate(dx, dy);
       this._clampToBounds();
       this._updateTransform();
     }
     if (this._state.drawing) {
-      var tool = this._currentTool();
+      let tool = this._currentTool();
       this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
       this.redraw();
     }
@@ -355,7 +355,7 @@ class Flast {
 
   // transform the point from page space to canvas space
   _transformedPoint(x, y) {
-    var pt  = this._svg.createSVGPoint();
+    let pt  = this._svg.createSVGPoint();
     pt.x = x;
     pt.y = y;
     return pt.matrixTransform(this._transform.inverse());
@@ -363,7 +363,7 @@ class Flast {
 
   // set the transform on the context
   _updateTransform() {
-    var m = this._transform;
+    let m = this._transform;
     this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
     this.redraw();
     if (this.callbacks.transformWasUpdated) {
@@ -372,8 +372,8 @@ class Flast {
   }
 
   _clampToBounds() {
-    var maxWidth = this._contentSize.width * this._transform.a;
-    var maxHeight = this._contentSize.height * this._transform.d;
+    let maxWidth = this._contentSize.width * this._transform.a;
+    let maxHeight = this._contentSize.height * this._transform.d;
     this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width), 0);
     this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height), 0);
   }
@@ -383,14 +383,14 @@ class Flast {
   }
 
   _eventPoint(e) {
-    var x = e.offsetX || (e.pageX - this._canvas.offsetLeft);
-    var y = e.offsetY || (e.pageY - this._canvas.offsetTop);
+    let x = e.offsetX || (e.pageX - this._canvas.offsetLeft);
+    let y = e.offsetY || (e.pageY - this._canvas.offsetTop);
     return this._transformedPoint(x, y);
   }
 
   _tileImage(zoom, x, y) {
-    var url = this.getTileUrl(zoom, x, y);
-    var image = this._tileCache[url];
+    let url = this.getTileUrl(zoom, x, y);
+    let image = this._tileCache[url];
     if (!image) {
       image = new Image;
       image.src = url;
@@ -447,16 +447,16 @@ class Flast {
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
-        var vector = {
+        let vector = {
           dx: p2.x - p1.x,
           dy: p2.y - p1.y
         }
-        var length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
-        var percent = (length - 20.0) / length;
+        let length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
+        let percent = (length - 20.0) / length;
         ctx.lineTo(p1.x + (vector.dx * percent), p1.y + (vector.dy * percent));
         ctx.stroke();
 
-        var radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
+        let radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
         radians += ((p2.x > p1.x) ? 90 : -90) * Math.PI / 180;
 
         ctx.save();
@@ -529,18 +529,18 @@ class Flast {
         };
       },
       updateGeometry: function(geometry, pt) {
-        var c = geometry.center;
+        let c = geometry.center;
         geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
-        var g = geometry;
+        let g = geometry;
         ctx.beginPath();
         ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        var distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
+        let distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
                        Math.pow(pt.y - geometry.center.y, 2));
         return Math.abs(distance - geometry.radius) < 10;
       }
@@ -569,7 +569,7 @@ class Flast {
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        var distances = [
+        let distances = [
           Math.abs(geometry.p1.x - pt.x) < 10,
           Math.abs(geometry.p2.x - pt.x) < 10,
           Math.abs(geometry.p1.y - pt.y) < 10,
