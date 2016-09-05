@@ -125,7 +125,6 @@ class Flast {
                 let kRemainder = k - (childTilesPerParent * parentK);
                 let sWidth = image.width / childTilesPerParent;
                 let sHeight = image.height / childTilesPerParent;
-                console.log('zl', zl);
                 let sx = Math.floor(jRemainder * sWidth);
                 let sy = Math.floor(kRemainder * sHeight);
                 this._ctx.drawImage(image, sx, sy, sWidth, sHeight, tile.x, tile.y, tile.width, tile.height);
