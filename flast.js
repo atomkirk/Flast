@@ -32,8 +32,8 @@ class Flast {
     this._dragStart;
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
-    this._currentAnnotation = { shapes: [] };
-    this._currentShape;
+    this._currentAnnotation = null;
+    this._currentShape = null;
     this._maxScale = 2;
     this._state = {
       mouse: 'up', // 'down'
@@ -59,6 +59,7 @@ class Flast {
     });
     if (tool) {
       this._state.tool = toolName;
+      this.redraw();
     }
     else {
       console.error("Flask: That tool is not defined.");
@@ -114,17 +115,21 @@ class Flast {
       }
     }
 
-    // set how annotations should look
-    this._ctx.fillStyle = '#FF0000';
-    this._ctx.strokeStyle = '#FF0000';
-    this._ctx.lineWidth = 10;
+    // draw in-progress annotation/shapes
+    var currentAnnotation = this._currentAnnotation || { shapes: [] };
 
     // draw all annotations
-
-    for (let annotation of this.annotations.concat(this._currentAnnotation)) {
-      // only add the current shape to the current annotation
-      let shapes = annotation.shapes || [];
-      if (annotation === this._currentAnnotation) {
+    for (let annotation of this.annotations.concat(currentAnnotation)) {
+      // when drawing, fade out all other shapes except the current annotation
+      if (!this._currentAnnotation || annotation === this._currentAnnotation) {
+        this._ctx.globalAlpha = 1.0;
+      }
+      else {
+        this._ctx.globalAlpha = 0.2;
+      }
+      // draw in-progress shapes
+      let shapes = annotation.shapes;
+      if (annotation === currentAnnotation) {
         shapes = shapes.concat(this._currentShape || []);
       }
       // draw shapes
@@ -133,18 +138,29 @@ class Flast {
         var tool = this.tools.find((tool) => {
           return tool.name === shape.kind;
         });
+
+        // set how shape should look by default
+        // (can be overriden in drawInContext)
+        this._ctx.fillStyle = '#FF0000';
+        this._ctx.strokeStyle = '#FF0000';
+        this._ctx.lineWidth = 10;
+
         tool.drawInContext(this._ctx, shape.geometry);
       }
     }
-
+    this._ctx.globalAlpha = 1.0;
   }
 
   completeAnnotation() {
-    this.annotations.push(this._currentAnnotation);
-    if (this.callbacks.annotationCompleted) {
-      this.callbacks.annotationCompleted(this._currentAnnotation);
+    if (this._currentAnnotation && this.annotations.indexOf(this._currentAnnotation) < 0) {
+      this.annotations.push(this._currentAnnotation);
+      if (this.callbacks.annotationCompleted) {
+        this.callbacks.annotationCompleted(this._currentAnnotation);
+      }
     }
-    this._currentAnnotation = { shapes: [] };
+    this._currentAnnotation = null;
+    this._state.tool = 'none';
+    this.redraw();
   }
 
   _addEventListeners() {
@@ -190,16 +206,21 @@ class Flast {
 
   _mouseDown(e) {
     this._state.mouse = 'down';
-    document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+    document.body.style.mozUserSelect =
+      document.body.style.webkitUserSelect =
+      document.body.style.userSelect = 'none';
     this._dragStart = this._eventPoint(e);
   }
 
   _mouseUp(e) {
     this._state.mouse = 'up';
-    // draw
+
+    // stop dragging
     if (this._state.dragging) {
       this._state.dragging = false;
     }
+
+    // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none') {
       this._state.drawing = true;
       var pt = this._eventPoint(e);
@@ -214,19 +235,52 @@ class Flast {
         this.callbacks.beganDrawingShape(this._currentShape);
       }
     }
+
+    // stop drawing
     else if (this._state.drawing) {
       this._state.drawing = false;
-      // if the annotation doesn't already have shapes
-      if (this._currentAnnotation.shapes.length === 0) {
-        if (this.callbacks.beganAnnotation) {
-          this.callbacks.beganAnnotation(this._currentAnnotation);
+      // if there is not a current annotation
+      if (!this._currentAnnotation) {
+        // start new annotation
+        this._currentAnnotation = { shapes: [] };
+        // callback
+        if (this.callbacks.editingAnnotation) {
+          this.callbacks.editingAnnotation(this._currentAnnotation);
         }
       }
+      // add shape to current annotation
       this._currentAnnotation.shapes.push(this._currentShape);
+      // callback
       if (this.callbacks.finishedDrawingShape) {
         this.callbacks.finishedDrawingShape(this._currentShape);
       }
       this._currentShape = null;
+      this.redraw();
+    }
+
+    // if nothing already selected
+    else if (!this._currentAnnotation) {
+      // if mouse up over a shape
+      var pt = this._eventPoint(e);
+      for (let annotation of this.annotations) {
+        for (let shape of annotation.shapes) {
+          // find the tool that drew this shape
+          var tool = this.tools.find((tool) => {
+            return tool.name === shape.kind;
+          });
+          if (tool.hitTest(shape.geometry, pt)) {
+            if (this.callbacks.annotationSelected) {
+              this.callbacks.annotationSelected(annotation);
+              this._currentAnnotation = annotation;
+              if (this.callbacks.editingAnnotation) {
+                this.callbacks.editingAnnotation(annotation);
+              }
+              this.redraw();
+              return;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -391,6 +445,16 @@ class Flast {
         ctx.closePath();
         ctx.restore();
         ctx.fill();
+      },
+      hitTest: function(geometry, pt) {
+        let dxc = pt.x - geometry.p1.x;
+        let dyc = pt.y - geometry.p1.y;
+
+        let dxl = geometry.p2.x - geometry.p1.x;
+        let dyl = geometry.p2.y - geometry.p1.y;
+
+        let cross = dxc * dyl - dyc * dxl;
+        return Math.abs(cross) < 20000;
       }
     };
   }
@@ -416,6 +480,9 @@ class Flast {
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+
       }
     };
   }
@@ -440,6 +507,11 @@ class Flast {
         ctx.beginPath();
         ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+        var distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
+                       Math.pow(pt.y - geometry.center.y, 2));
+        return Math.abs(distance - geometry.radius) < 10;
       }
     };
   }
@@ -464,6 +536,9 @@ class Flast {
         ctx.beginPath();
         ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
         ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+
       }
     };
   }

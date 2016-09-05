@@ -42,13 +42,14 @@
             }]
           }],
           callbacks: {
-            beganAnnotation: function(annotation) {
-              console.log('beganAnnotation');
+            editingAnnotation: function(annotation) {
               document.querySelector("#js-done-button").style.display = '';
             },
             annotationCompleted: function(annotation) {
-              console.log('annotationCompleted');
               document.querySelector("#js-done-button").style.display = 'none';
+            },
+            annotationSelected: function(annotation) {
+              console.log('annotationSelected');
             },
             beganDrawingShape: function(shape) {
               console.log('beganDrawingShape');
