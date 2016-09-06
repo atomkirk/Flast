@@ -209,7 +209,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
       // update any shape that is currently being drawn
       if (this._currentShape) {
-        this._currentShape.geometry.p2 = pt;
+        var tool = this._currentTool();
+        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
       }
 
       var factor = Math.pow(this.zoomSpeed, delta);
@@ -433,12 +434,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       keyCode: 65,
       startGeometry: function(pt) {
         return {
-          p1: pt,
-          p2: pt
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
         };
       },
       updateGeometry: function(geometry, pt) {
-        geometry.p2 = pt;
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
@@ -483,12 +493,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       keyCode: 76,
       startGeometry: function(pt) {
         return {
-          p1: pt,
-          p2: pt
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
         };
       },
       updateGeometry: function(geometry, pt) {
-        geometry.p2 = pt;
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
@@ -511,7 +530,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       keyCode: 67,
       startGeometry: function(pt) {
         return {
-          center: pt,
+          center: {
+            x: pt.x,
+            y: pt.y
+          },
           radius: 0
         };
       },
@@ -540,12 +562,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       keyCode: 82,
       startGeometry: function(pt) {
         return {
-          p1: pt,
-          p2: pt
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
         };
       },
       updateGeometry: function(geometry, pt) {
-        geometry.p2 = pt;
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
         return geometry;
       },
       drawInContext: function(ctx, geometry) {
