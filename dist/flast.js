@@ -224,6 +224,24 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     };
   };
 
+  proto$0.zoomToRect = function(rect) {
+    var scaleX = this.width / rect.width;
+    var scaleY = this.height / rect.height;
+    var scale = Math.min(scaleX, scaleY);
+    scale = Flast.clamp(scale, this._minScale, this._maxScale);
+    this._transform.a = this._transform.d = scale;
+
+    var portWidth = this.width * (1.0 / scale);
+    var portHeight = this.height * (1.0 / scale);
+    this._transform.e = -rect.x * scale;
+    this._transform.f = -rect.y * scale;
+
+    this._transform.e += ((portWidth * scale) / 2.0) - ((rect.width * scale) / 2.0);
+    this._transform.f += ((portHeight * scale) / 2.0) - ((rect.height * scale) / 2.0);
+
+    this._updateTransform();
+  };
+
   proto$0._addEventListeners = function() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
@@ -252,6 +270,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
       var factor = Math.pow(this.zoomSpeed, delta);
       var scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
+      console.log(scale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);

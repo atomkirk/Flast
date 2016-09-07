@@ -224,20 +224,20 @@ class Flast {
     };
   }
 
-  zoomRect(rect) {
-    this._transform.e = -rect.x;
-    this._transform.f = -rect.y;
-    // let scaleX = this.width / rect.width;
-    // let scaleY = this.height / rect.height;
-    // let scale = Math.max(scaleX, scaleY);
-    // console.log(scale);
-    // scale = Flast.clamp(scale, this._minScale, this._maxScale);
-    // console.log(scale);
-    // this._transform.a = this._transform.d = scale;
+  zoomToRect(rect) {
+    let scaleX = this.width / rect.width;
+    let scaleY = this.height / rect.height;
+    let scale = Math.min(scaleX, scaleY);
+    scale = Flast.clamp(scale, this._minScale, this._maxScale);
+    this._transform.a = this._transform.d = scale;
 
-    // this._transform = this._transform.translate(rect.x, rect.y);
-    // this._clampToBounds();
+    let portWidth = this.width * (1.0 / scale);
+    let portHeight = this.height * (1.0 / scale);
+    this._transform.e = -rect.x * scale;
+    this._transform.f = -rect.y * scale;
 
+    this._transform.e += ((portWidth * scale) / 2.0) - ((rect.width * scale) / 2.0);
+    this._transform.f += ((portHeight * scale) / 2.0) - ((rect.height * scale) / 2.0);
 
     this._updateTransform();
   }
@@ -270,6 +270,7 @@ class Flast {
 
       let factor = Math.pow(this.zoomSpeed, delta);
       let scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
+      console.log(scale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);
