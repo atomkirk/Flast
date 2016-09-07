@@ -189,7 +189,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
   proto$0.completeAnnotation = function() {
     if (this._currentAnnotation) {
-      if (this.annotations.indexOf(this._currentAnnotation) < 0) {
+      if (this.annotations.indexOf(this._currentAnnotation) === -1) {
         this.annotations.push(this._currentAnnotation);
       }
       if (this.callbacks.annotationCompleted) {
@@ -198,6 +198,17 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
     this._currentAnnotation = null;
     this._state.tool = 'none';
+    this.redraw();
+  };
+
+  proto$0.selectAnnotation = function(annotation) {
+    this._currentAnnotation = annotation;
+    if (this.callbacks.annotationSelected) {
+      this.callbacks.annotationSelected(annotation);
+      // if (this.callbacks.editingAnnotation) {
+      //   this.callbacks.editingAnnotation(annotation);
+      // }
+    }
     this.redraw();
   };
 
@@ -356,15 +367,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
             return tool.name === shape.kind;
           });
           if (tool.hitTest(shape.geometry, pt$0)) {
-            if ($that$0.callbacks.annotationSelected) {
-              $that$0.callbacks.annotationSelected(annotation);
-              $that$0._currentAnnotation = annotation;
-              if ($that$0.callbacks.editingAnnotation) {
-                $that$0.callbacks.editingAnnotation(annotation);
-              }
-              $that$0.redraw();
-              {$retVoid$0 = true;return}
-            }
+            $that$0.selectAnnotation(annotation);
+            {$retVoid$0 = true;return}
           }
         })(shape);if($retVoid$0===true){$retVoid$0=void 0;return}};$D$15 = $D$16 = $D$17 = $D$18 = void 0;
       };$D$11 = $D$12 = $D$13 = $D$14 = void 0;

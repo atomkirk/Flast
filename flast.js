@@ -189,7 +189,7 @@ class Flast {
 
   completeAnnotation() {
     if (this._currentAnnotation) {
-      if (this.annotations.indexOf(this._currentAnnotation) < 0) {
+      if (this.annotations.indexOf(this._currentAnnotation) === -1) {
         this.annotations.push(this._currentAnnotation);
       }
       if (this.callbacks.annotationCompleted) {
@@ -198,6 +198,17 @@ class Flast {
     }
     this._currentAnnotation = null;
     this._state.tool = 'none';
+    this.redraw();
+  }
+
+  selectAnnotation(annotation) {
+    this._currentAnnotation = annotation;
+    if (this.callbacks.annotationSelected) {
+      this.callbacks.annotationSelected(annotation);
+      // if (this.callbacks.editingAnnotation) {
+      //   this.callbacks.editingAnnotation(annotation);
+      // }
+    }
     this.redraw();
   }
 
@@ -356,15 +367,8 @@ class Flast {
             return tool.name === shape.kind;
           });
           if (tool.hitTest(shape.geometry, pt)) {
-            if (this.callbacks.annotationSelected) {
-              this.callbacks.annotationSelected(annotation);
-              this._currentAnnotation = annotation;
-              if (this.callbacks.editingAnnotation) {
-                this.callbacks.editingAnnotation(annotation);
-              }
-              this.redraw();
-              return;
-            }
+            this.selectAnnotation(annotation);
+            return;
           }
         }
       }
