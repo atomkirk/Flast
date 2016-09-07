@@ -46,6 +46,7 @@
               document.querySelector("#js-done-button").style.display = '';
             },
             annotationCompleted: function(annotation) {
+              window.lastAnnotation = annotation;
               document.querySelector("#js-done-button").style.display = 'none';
             },
             annotationSelected: function(annotation) {
@@ -83,6 +84,13 @@
         editor.setTool('rectangle');
       }
 
+      function center(e) {
+        if (window.lastAnnotation) {
+          let rect = editor.boundingRectFor(window.lastAnnotation)
+          editor.zoomRect(rect);
+        }
+      }
+
       function done(e) {
         editor.completeAnnotation();
       }
@@ -91,6 +99,7 @@
     <button onclick="selectLineTool()">line</button>
     <button onclick="selectCircleTool()">circle</button>
     <button onclick="selectRectangleTool()">rectangle</button>
+    <button onclick="center()">center</button>
     <button id="js-done-button" style="display: none;" onclick="done()">done</button>
   </body>
 </html>

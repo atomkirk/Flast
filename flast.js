@@ -224,6 +224,24 @@ class Flast {
     };
   }
 
+  zoomRect(rect) {
+    this._transform.e = -rect.x;
+    this._transform.f = -rect.y;
+    // let scaleX = this.width / rect.width;
+    // let scaleY = this.height / rect.height;
+    // let scale = Math.max(scaleX, scaleY);
+    // console.log(scale);
+    // scale = Flast.clamp(scale, this._minScale, this._maxScale);
+    // console.log(scale);
+    // this._transform.a = this._transform.d = scale;
+
+    // this._transform = this._transform.translate(rect.x, rect.y);
+    // this._clampToBounds();
+
+
+    this._updateTransform();
+  }
+
   _addEventListeners() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false);
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false);
