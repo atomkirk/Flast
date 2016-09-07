@@ -216,7 +216,8 @@ class Flast {
 
       // update any shape that is currently being drawn
       if (this._currentShape) {
-        this._currentShape.geometry.p2 = pt;
+        let tool = this._currentTool();
+        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
       }
 
       let factor = Math.pow(this.zoomSpeed, delta);
@@ -446,12 +447,21 @@ class Flast {
       keyCode: 65,
       startGeometry(pt) {
         return {
-          p1: pt,
-          p2: pt
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
         };
       },
-      updateGeometry(geometry, pt) {
-        geometry.p2 = pt;
+      updateGeometry: function(geometry, pt) {
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
         return geometry;
       },
       boundingRect(geometry) {
@@ -508,12 +518,21 @@ class Flast {
       keyCode: 76,
       startGeometry: function(pt) {
         return {
-          p1: pt,
-          p2: pt
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
         };
       },
       updateGeometry: function(geometry, pt) {
-        geometry.p2 = pt;
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
         return geometry;
       },
       boundingRect(geometry) {
@@ -546,9 +565,12 @@ class Flast {
     return {
       name: 'circle',
       keyCode: 67,
-      startGeometry: function(pt) {
+      startGeometry(pt) {
         return {
-          center: pt,
+          center: {
+            x: pt.x,
+            y: pt.y
+          },
           radius: 0
         };
       },
