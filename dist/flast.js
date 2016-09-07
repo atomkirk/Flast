@@ -176,6 +176,13 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         // this._ctx.strokeRect(g.x, g.y, g.width, g.height);
         // this._ctx.stroke();
       })(shape);};$D$4 = $D$5 = $D$6 = void 0;
+
+      // tests annotation bounding box
+      // this._ctx.lineWidth = 1;
+      // let g = this.boundingRectFor(annotation);
+      // this._ctx.beginPath();
+      // this._ctx.strokeRect(g.x, g.y, g.width, g.height);
+      // this._ctx.stroke();
     };$D$0 = $D$1 = $D$2 = $D$3 = void 0;
     this._ctx.globalAlpha = 1.0;
   };
@@ -192,6 +199,29 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._currentAnnotation = null;
     this._state.tool = 'none';
     this.redraw();
+  };
+
+  proto$0.boundingRectFor = function(annotation) {var $D$7;var $D$8;var $D$9;var $D$10;;var $that$0=this;
+    var minX = Infinity;
+    var maxX = 0;
+    var minY = Infinity;
+    var maxY = 0;
+    $D$10 = (annotation.shapes);$D$7 = GET_ITER$0($D$10);$D$9 = $D$7 === 0;$D$8 = ($D$9 ? $D$10.length : void 0);for (var shape ;$D$9 ? ($D$7 < $D$8) : !($D$8 = $D$7["next"]())["done"];){shape = ($D$9 ? $D$10[$D$7++] : $D$8["value"]);(function(shape){
+      var tool = $that$0.tools.find(function(tool)  {
+        return tool.name === shape.kind;
+      });
+      var box = tool.boundingRect(shape.geometry);
+      minX = Math.min(minX, box.x);
+      maxX = Math.max(maxX, box.x + box.width);
+      minY = Math.min(minY, box.y);
+      maxY = Math.max(maxY, box.y + box.height);
+    })(shape);};$D$7 = $D$8 = $D$9 = $D$10 = void 0;
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
   };
 
   proto$0._addEventListeners = function() {
@@ -244,7 +274,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._dragStart = this._eventPoint(e);
   };
 
-  proto$0._mouseUp = function(e) {var $D$7;var $D$8;var $D$9;var $D$10;var $D$11;var $D$12;var $D$13;var $D$14;;var $that$0=this;
+  proto$0._mouseUp = function(e) {var $D$11;var $D$12;var $D$13;var $D$14;var $D$15;var $D$16;var $D$17;var $D$18;;var $that$0=this;
     this._state.mouse = 'up';
 
     // stop dragging
@@ -300,8 +330,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     else if (!this._currentAnnotation) {
       // if mouse up over a shape
       var pt$0 = this._eventPoint(e);
-      $D$10 = (this.annotations);$D$7 = GET_ITER$0($D$10);$D$9 = $D$7 === 0;$D$8 = ($D$9 ? $D$10.length : void 0);for (var annotation ;$D$9 ? ($D$7 < $D$8) : !($D$8 = $D$7["next"]())["done"];){annotation = ($D$9 ? $D$10[$D$7++] : $D$8["value"]);
-        $D$14 = (annotation.shapes);$D$11 = GET_ITER$0($D$14);$D$13 = $D$11 === 0;$D$12 = ($D$13 ? $D$14.length : void 0);for (var shape ;$D$13 ? ($D$11 < $D$12) : !($D$12 = $D$11["next"]())["done"];){shape = ($D$13 ? $D$14[$D$11++] : $D$12["value"]);;var $retVoid$0;(function(shape){
+      $D$14 = (this.annotations);$D$11 = GET_ITER$0($D$14);$D$13 = $D$11 === 0;$D$12 = ($D$13 ? $D$14.length : void 0);for (var annotation ;$D$13 ? ($D$11 < $D$12) : !($D$12 = $D$11["next"]())["done"];){annotation = ($D$13 ? $D$14[$D$11++] : $D$12["value"]);
+        $D$18 = (annotation.shapes);$D$15 = GET_ITER$0($D$18);$D$17 = $D$15 === 0;$D$16 = ($D$17 ? $D$18.length : void 0);for (var shape ;$D$17 ? ($D$15 < $D$16) : !($D$16 = $D$15["next"]())["done"];){shape = ($D$17 ? $D$18[$D$15++] : $D$16["value"]);;var $retVoid$0;(function(shape){
           // find the tool that drew this shape
           var tool = $that$0.tools.find(function(tool)  {
             return tool.name === shape.kind;
@@ -317,8 +347,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
               {$retVoid$0 = true;return}
             }
           }
-        })(shape);if($retVoid$0===true){$retVoid$0=void 0;return}};$D$11 = $D$12 = $D$13 = $D$14 = void 0;
-      };$D$7 = $D$8 = $D$9 = $D$10 = void 0;
+        })(shape);if($retVoid$0===true){$retVoid$0=void 0;return}};$D$15 = $D$16 = $D$17 = $D$18 = void 0;
+      };$D$11 = $D$12 = $D$13 = $D$14 = void 0;
     }
   };
 
@@ -348,7 +378,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
   };
 
-  proto$0._keyUp = function(e) {var $D$15;var $D$16;var $D$17;var $D$18;
+  proto$0._keyUp = function(e) {var $D$19;var $D$20;var $D$21;var $D$22;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       if (this.callbacks.cancelledDrawingShape) {
@@ -359,11 +389,11 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       this.redraw();
     }
     else {
-      $D$18 = (this.tools);$D$15 = GET_ITER$0($D$18);$D$17 = $D$15 === 0;$D$16 = ($D$17 ? $D$18.length : void 0);for (var tool ;$D$17 ? ($D$15 < $D$16) : !($D$16 = $D$15["next"]())["done"];){tool = ($D$17 ? $D$18[$D$15++] : $D$16["value"]);
+      $D$22 = (this.tools);$D$19 = GET_ITER$0($D$22);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? $D$22.length : void 0);for (var tool ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){tool = ($D$21 ? $D$22[$D$19++] : $D$20["value"]);
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name;
         }
-      };$D$15 = $D$16 = $D$17 = $D$18 = void 0;
+      };$D$19 = $D$20 = $D$21 = $D$22 = void 0;
     }
   };
 
@@ -639,16 +669,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.strokeRect(g.x, g.y, g.width, g.height);
         ctx.stroke();
       },
-      hitTest: function(geometry, pt) {var $D$19;var $D$20;var $D$21;
+      hitTest: function(geometry, pt) {var $D$23;var $D$24;var $D$25;
         var distances = [
           Math.abs(geometry.x - pt.x),
           Math.abs((geometry.x + geometry.width) - pt.x),
           Math.abs(geometry.y - pt.y),
           Math.abs((geometry.y + geometry.height) - pt.y)
         ];
-        $D$19 = GET_ITER$0(distances);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? distances.length : void 0);for (var dist ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){dist = ($D$21 ? distances[$D$19++] : $D$20["value"]);
+        $D$23 = GET_ITER$0(distances);$D$25 = $D$23 === 0;$D$24 = ($D$25 ? distances.length : void 0);for (var dist ;$D$25 ? ($D$23 < $D$24) : !($D$24 = $D$23["next"]())["done"];){dist = ($D$25 ? distances[$D$23++] : $D$24["value"]);
           if (dist < 10) return true;
-        };$D$19 = $D$20 = $D$21 = void 0;
+        };$D$23 = $D$24 = $D$25 = void 0;
       }
     };
   }

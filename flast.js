@@ -176,6 +176,13 @@ class Flast {
         // this._ctx.strokeRect(g.x, g.y, g.width, g.height);
         // this._ctx.stroke();
       }
+
+      // tests annotation bounding box
+      // this._ctx.lineWidth = 1;
+      // let g = this.boundingRectFor(annotation);
+      // this._ctx.beginPath();
+      // this._ctx.strokeRect(g.x, g.y, g.width, g.height);
+      // this._ctx.stroke();
     }
     this._ctx.globalAlpha = 1.0;
   }
@@ -192,6 +199,29 @@ class Flast {
     this._currentAnnotation = null;
     this._state.tool = 'none';
     this.redraw();
+  }
+
+  boundingRectFor(annotation) {
+    let minX = Infinity;
+    let maxX = 0;
+    let minY = Infinity;
+    let maxY = 0;
+    for (let shape of annotation.shapes) {
+      let tool = this.tools.find((tool) => {
+        return tool.name === shape.kind;
+      });
+      let box = tool.boundingRect(shape.geometry);
+      minX = Math.min(minX, box.x);
+      maxX = Math.max(maxX, box.x + box.width);
+      minY = Math.min(minY, box.y);
+      maxY = Math.max(maxY, box.y + box.height);
+    }
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
   }
 
   _addEventListeners() {
