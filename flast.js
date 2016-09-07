@@ -281,7 +281,6 @@ class Flast {
 
       let factor = Math.pow(this.zoomSpeed, delta);
       let scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
-      console.log(scale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);

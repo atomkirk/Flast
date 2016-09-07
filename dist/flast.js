@@ -281,7 +281,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
       var factor = Math.pow(this.zoomSpeed, delta);
       var scale = Flast.clamp(this._transform.a * factor, this._minScale, this._maxScale);
-      console.log(scale);
 
       // move point of mouse to center
       this._transform = this._transform.translate(pt.x, pt.y);
