@@ -168,6 +168,13 @@ class Flast {
         this._ctx.lineWidth = 10;
 
         tool.drawInContext(this._ctx, shape.geometry);
+
+        // tests bounding box
+        // this._ctx.lineWidth = 1;
+        // let g = tool.boundingRect(shape.geometry);
+        // this._ctx.beginPath();
+        // this._ctx.strokeRect(g.x, g.y, g.width, g.height);
+        // this._ctx.stroke();
       }
     }
     this._ctx.globalAlpha = 1.0;
@@ -272,6 +279,12 @@ class Flast {
           this.callbacks.editingAnnotation(this._currentAnnotation);
         }
       }
+      // finalize drawing if tool provides it
+      let tool = this._currentTool();
+      if (tool.finalGeometry) {
+        this._currentShape.geometry = tool.finalGeometry(this._currentShape.geometry);
+      }
+
       // add shape to current annotation
       this._currentAnnotation.shapes.push(this._currentShape);
       // callback
@@ -431,17 +444,29 @@ class Flast {
     return {
       name: 'arrow',
       keyCode: 65,
-      startGeometry: function(pt) {
+      startGeometry(pt) {
         return {
           p1: pt,
           p2: pt
         };
       },
-      updateGeometry: function(geometry, pt) {
+      updateGeometry(geometry, pt) {
         geometry.p2 = pt;
         return geometry;
       },
-      drawInContext: function(ctx, geometry) {
+      boundingRect(geometry) {
+        let minX = Math.min(geometry.p1.x, geometry.p2.x);
+        let maxX = Math.max(geometry.p1.x, geometry.p2.x);
+        let minY = Math.min(geometry.p1.y, geometry.p2.y);
+        let maxY = Math.max(geometry.p1.y, geometry.p2.y);
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+      },
+      drawInContext(ctx, geometry) {
         let p1 = geometry.p1;
         let p2 = geometry.p2;
         let arrowHeight = 60.0;
@@ -471,7 +496,7 @@ class Flast {
         ctx.restore();
         ctx.fill();
       },
-      hitTest: function(geometry, pt) {
+      hitTest(geometry, pt) {
         return Flast._onLine(geometry, pt);
       }
     };
@@ -490,6 +515,18 @@ class Flast {
       updateGeometry: function(geometry, pt) {
         geometry.p2 = pt;
         return geometry;
+      },
+      boundingRect(geometry) {
+        let minX = Math.min(geometry.p1.x, geometry.p2.x);
+        let maxX = Math.max(geometry.p1.x, geometry.p2.x);
+        let minY = Math.min(geometry.p1.y, geometry.p2.y);
+        let maxY = Math.max(geometry.p1.y, geometry.p2.y);
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
       },
       drawInContext: function(ctx, geometry) {
         let p1 = geometry.p1;
@@ -520,6 +557,18 @@ class Flast {
         geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
         return geometry;
       },
+      boundingRect(geometry) {
+        let minX = geometry.center.x - geometry.radius;
+        let maxX = geometry.center.x + geometry.radius;
+        let minY = geometry.center.y - geometry.radius;
+        let maxY = geometry.center.y + geometry.radius;
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+      },
       drawInContext: function(ctx, geometry) {
         let g = geometry;
         ctx.beginPath();
@@ -538,29 +587,42 @@ class Flast {
     return {
       name: 'rectangle',
       keyCode: 82,
-      startGeometry: function(pt) {
+      startGeometry(pt) {
         return {
-          p1: pt,
-          p2: pt
+          x: pt.x,
+          y: pt.y,
+          width: 0,
+          height: 0
         };
       },
-      updateGeometry: function(geometry, pt) {
-        geometry.p2 = pt;
+      updateGeometry(geometry, pt) {
+        geometry.width = pt.x - geometry.x;
+        geometry.height = pt.y - geometry.y;
         return geometry;
       },
-      drawInContext: function(ctx, geometry) {
-        let p1 = geometry.p1;
-        let p2 = geometry.p2;
+      finalGeometry(geometry) {
+        return {
+          x: Math.min(geometry.x, geometry.x + geometry.width),
+          y: Math.min(geometry.y, geometry.y + geometry.height),
+          width: Math.abs(geometry.width),
+          height: Math.abs(geometry.height)
+        }
+      },
+      boundingRect(geometry) {
+        return geometry;
+      },
+      drawInContext(ctx, geometry) {
+        let g = geometry;
         ctx.beginPath();
-        ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+        ctx.strokeRect(g.x, g.y, g.width, g.height);
         ctx.stroke();
       },
-      hitTest: function(geometry, pt) {
+      hitTest(geometry, pt) {
         let distances = [
-          Math.abs(geometry.p1.x - pt.x),
-          Math.abs(geometry.p2.x - pt.x),
-          Math.abs(geometry.p1.y - pt.y),
-          Math.abs(geometry.p2.y - pt.y)
+          Math.abs(geometry.x - pt.x),
+          Math.abs((geometry.x + geometry.width) - pt.x),
+          Math.abs(geometry.y - pt.y),
+          Math.abs((geometry.y + geometry.height) - pt.y)
         ];
         for (let dist of distances) {
           if (dist < 10) return true;
