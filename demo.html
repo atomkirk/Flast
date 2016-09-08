@@ -42,27 +42,28 @@
             }]
           }],
           callbacks: {
-            editingAnnotation: function(annotation) {
+            didStartAnnotation: function(annotation) {
               document.querySelector("#js-done-button").style.display = '';
             },
-            annotationCompleted: function(annotation) {
+            didFinishAnnotation: function(annotation) {
               window.lastAnnotation = annotation;
               document.querySelector("#js-done-button").style.display = 'none';
             },
-            annotationSelected: function(annotation) {
-              // console.log('annotationSelected');
+            didSelectAnnotation: function(annotation) {
+              window.lastAnnotation = annotation;
+              document.querySelector("#js-done-button").style.display = '';
             },
-            beganDrawingShape: function(shape) {
-              // console.log('beganDrawingShape');
+            didBeginDrawingShape: function(shape) {
+              // console.log('didBeginDrawingShape');
             },
-            cancelledDrawingShape: function(shape) {
-              // console.log('cancelledDrawingShape');
+            didCancelDrawingShape: function(shape) {
+              // console.log('didCancelDrawingShape');
             },
-            finishedDrawingShape: function(shape) {
-              // console.log('finishedDrawingShape');
+            didFinishDrawingShape: function(shape) {
+              // console.log('didFinishDrawingShape');
             },
-            transformWasUpdated: function(transform) {
-              // console.log('transformWasUpdated');
+            didUpdateTransform: function(transform) {
+              // console.log('didUpdateTransform');
             }
           }
         });

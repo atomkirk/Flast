@@ -192,8 +192,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       if (this.annotations.indexOf(this._currentAnnotation) === -1) {
         this.annotations.push(this._currentAnnotation);
       }
-      if (this.callbacks.annotationCompleted) {
-        this.callbacks.annotationCompleted(this._currentAnnotation);
+      if (this.callbacks.didFinishAnnotation) {
+        this.callbacks.didFinishAnnotation(this._currentAnnotation);
       }
     }
     this._currentAnnotation = null;
@@ -203,10 +203,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
   proto$0.selectAnnotation = function(annotation) {
     this._currentAnnotation = annotation;
-    if (this.callbacks.annotationSelected) {
-      this.callbacks.annotationSelected(annotation);
-      // if (this.callbacks.editingAnnotation) {
-      //   this.callbacks.editingAnnotation(annotation);
+    if (this.callbacks.didSelectAnnotation) {
+      this.callbacks.didSelectAnnotation(annotation);
+      // if (this.callbacks.didStartAnnotation) {
+      //   this.callbacks.didStartAnnotation(annotation);
       // }
     }
     this.redraw();
@@ -322,8 +322,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         geometry: tool.startGeometry(pt)
       }
       // callback
-      if (this.callbacks.beganDrawingShape) {
-        this.callbacks.beganDrawingShape(this._currentShape);
+      if (this.callbacks.didBeginDrawingShape) {
+        this.callbacks.didBeginDrawingShape(this._currentShape);
       }
     }
 
@@ -335,8 +335,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         // start new annotation
         this._currentAnnotation = { shapes: [] };
         // callback
-        if (this.callbacks.editingAnnotation) {
-          this.callbacks.editingAnnotation(this._currentAnnotation);
+        if (this.callbacks.didStartAnnotation) {
+          this.callbacks.didStartAnnotation(this._currentAnnotation);
         }
       }
       // finalize drawing if tool provides it
@@ -348,8 +348,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       // add shape to current annotation
       this._currentAnnotation.shapes.push(this._currentShape);
       // callback
-      if (this.callbacks.finishedDrawingShape) {
-        this.callbacks.finishedDrawingShape(this._currentShape);
+      if (this.callbacks.didFinishDrawingShape) {
+        this.callbacks.didFinishDrawingShape(this._currentShape);
       }
       this._currentShape = null;
       this.redraw();
@@ -403,8 +403,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   proto$0._keyUp = function(e) {var $D$19;var $D$20;var $D$21;var $D$22;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
-      if (this.callbacks.cancelledDrawingShape) {
-        this.callbacks.cancelledDrawingShape(this._currentShape);
+      if (this.callbacks.didCancelDrawingShape) {
+        this.callbacks.didCancelDrawingShape(this._currentShape);
       }
       this._state.drawing = false;
       this._currentShape = null;
@@ -432,8 +432,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     var m = this._transform;
     this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
     this.redraw();
-    if (this.callbacks.transformWasUpdated) {
-      this.callbacks.transformWasUpdated(m);
+    if (this.callbacks.didUpdateTransform) {
+      this.callbacks.didUpdateTransform(m);
     }
   };
 
