@@ -1,6 +1,6 @@
 var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};
 
-  function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};
+  function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};var this$0 = this;
 
     // public
     this.width = canvas.clientWidth;
@@ -44,6 +44,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     this._addEventListeners();
     this._configureCanvas();
+
+    window.onresize = function(event)  {
+      // TODO this could be much more graceful. Currently it screws up the
+      // zoom and goes to the top right of the drawing
+      this$0.width = canvas.clientWidth;
+      this$0.height = canvas.clientHeight;
+      this$0.setTileSize(this$0.tileSize);
+      this$0._configureCanvas();
+      this$0.redraw();
+    };
 
     this.setTileSize(options.tileSize || {
       width: 624,

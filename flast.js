@@ -45,6 +45,16 @@ class Flast {
     this._addEventListeners();
     this._configureCanvas();
 
+    window.onresize = (event) => {
+      // TODO this could be much more graceful. Currently it screws up the
+      // zoom and goes to the top right of the drawing
+      this.width = canvas.clientWidth;
+      this.height = canvas.clientHeight;
+      this.setTileSize(this.tileSize);
+      this._configureCanvas();
+      this.redraw();
+    };
+
     this.setTileSize(options.tileSize || {
       width: 624,
       height: 416
