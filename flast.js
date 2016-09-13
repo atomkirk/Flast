@@ -65,6 +65,10 @@ class Flast {
       height: this._contentSize.height / Math.pow(2, this.maxZoom)
     });
 
+    // zoom out as far as possible to start
+    this._transform.a = this._transform.d = this._minScale;
+    this._updateTransform();
+
     this.redraw();
   }
 
@@ -261,6 +265,12 @@ class Flast {
     this._transform.e += ((portWidth * scale) / 2.0) - ((rect.width * scale) / 2.0);
     this._transform.f += ((portHeight * scale) / 2.0) - ((rect.height * scale) / 2.0);
 
+    this._updateTransform();
+  }
+
+  setTransform(transform) {
+    this._transform = transform;
+    this._clampToBounds();
     this._updateTransform();
   }
 

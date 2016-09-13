@@ -65,6 +65,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       height: this._contentSize.height / Math.pow(2, this.maxZoom)
     });
 
+    // zoom out as far as possible to start
+    this._transform.a = this._transform.d = this._minScale;
+    this._updateTransform();
+
     this.redraw();
   }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
 
@@ -261,6 +265,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._transform.e += ((portWidth * scale) / 2.0) - ((rect.width * scale) / 2.0);
     this._transform.f += ((portHeight * scale) / 2.0) - ((rect.height * scale) / 2.0);
 
+    this._updateTransform();
+  };
+
+  proto$0.setTransform = function(transform) {
+    this._transform = transform;
+    this._clampToBounds();
     this._updateTransform();
   };
 
