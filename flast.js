@@ -12,7 +12,7 @@ class Flast {
     this.zoomSpeed = options.zoomSpeed || 1.01;
 
     this.getTileUrl = options.getTileUrl || function(zoom, x, y) {
-      return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+      return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
     };
 
     this.tools = options.tools || [
@@ -55,9 +55,14 @@ class Flast {
       this.redraw();
     };
 
+    this._contentSize = {
+      width: options.width || 624 * Math.pow(2, this.maxZoom),
+      height: options.height || 416 * Math.pow(2, this.maxZoom)
+    };
+
     this.setTileSize(options.tileSize || {
-      width: 624,
-      height: 416
+      width: this._contentSize.width / Math.pow(2, this.maxZoom),
+      height: this._contentSize.height / Math.pow(2, this.maxZoom)
     });
 
     this.redraw();
@@ -79,10 +84,6 @@ class Flast {
   setTileSize(size) {
     this.tileSize = size;
     this._tileCache = {};
-    this._contentSize = {
-      width: this.tileSize.width * Math.pow(2, this.maxZoom),
-      height: this.tileSize.height * Math.pow(2, this.maxZoom)
-    };
     let minScaleX = this.width / this._contentSize.width;
     let minScaleY = this.height / this._contentSize.height;
     this._minScale = Math.max(minScaleX, minScaleY);

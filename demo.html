@@ -21,7 +21,7 @@
         var canvas = document.getElementsByTagName('canvas')[0];
         window.editor = new Flast(canvas, {
           getTileUrl: function(zoom, x, y) {
-            return `http://useredline-api.s3.amazonaws.com/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+            return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
           },
           tools: [
             Flast.ARROW,
