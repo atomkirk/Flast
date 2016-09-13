@@ -20,8 +20,10 @@
       window.onload = () => {
         var canvas = document.getElementsByTagName('canvas')[0];
         window.editor = new Flast(canvas, {
+          width: 7727,
+          height: 10000,
           getTileUrl: function(zoom, x, y) {
-            return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
+            return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/a4d450cf8bdf8916a860658a/tile_${zoom}_${x}x${y}.jpg`;
           },
           tools: [
             Flast.ARROW,
