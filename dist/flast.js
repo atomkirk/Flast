@@ -67,7 +67,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     // zoom out as far as possible to start
     this._transform.a = this._transform.d = this._minScale;
-    this._updateTransform();
+    var m = this._transform;
+    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
 
     this.redraw();
   }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
