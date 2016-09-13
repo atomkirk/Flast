@@ -60,7 +60,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       height: options.height || 416 * Math.pow(2, this.maxZoom)
     };
 
-    this.setTileSize(options.tileSize || {
+    this.setTileSize({
       width: this._contentSize.width / Math.pow(2, this.maxZoom),
       height: this._contentSize.height / Math.pow(2, this.maxZoom)
     });
