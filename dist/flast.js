@@ -46,12 +46,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._configureCanvas();
 
     window.onresize = function(event)  {
-      // TODO this could be much more graceful. Currently it screws up the
-      // zoom and goes to the top right of the drawing
+      var transform = this$0._transform;
       this$0.width = canvas.clientWidth;
       this$0.height = canvas.clientHeight;
       this$0.setTileSize(this$0.tileSize);
       this$0._configureCanvas();
+      this$0._applyTransform(transform);
       this$0.redraw();
     };
 
@@ -67,8 +67,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     // zoom out as far as possible to start
     this._transform.a = this._transform.d = this._minScale;
-    var m = this._transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    this._applyTransform(this._transform);
 
     this.redraw();
   }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
@@ -449,13 +448,17 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     return pt.matrixTransform(this._transform.inverse());
   };
 
+  proto$0._applyTransform = function(transform) {
+    var m = transform;
+    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+  };
+
   // set the transform on the context
   proto$0._updateTransform = function() {
-    var m = this._transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    this._applyTransform(this._transform);
     this.redraw();
     if (this.callbacks.didUpdateTransform) {
-      this.callbacks.didUpdateTransform(m);
+      this.callbacks.didUpdateTransform(this._transform);
     }
   };
 

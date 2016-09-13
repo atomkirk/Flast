@@ -46,12 +46,12 @@ class Flast {
     this._configureCanvas();
 
     window.onresize = (event) => {
-      // TODO this could be much more graceful. Currently it screws up the
-      // zoom and goes to the top right of the drawing
+      let transform = this._transform;
       this.width = canvas.clientWidth;
       this.height = canvas.clientHeight;
       this.setTileSize(this.tileSize);
       this._configureCanvas();
+      this._applyTransform(transform);
       this.redraw();
     };
 
@@ -67,8 +67,7 @@ class Flast {
 
     // zoom out as far as possible to start
     this._transform.a = this._transform.d = this._minScale;
-    let m = this._transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    this._applyTransform(this._transform);
 
     this.redraw();
   }
@@ -449,13 +448,17 @@ class Flast {
     return pt.matrixTransform(this._transform.inverse());
   }
 
+  _applyTransform(transform) {
+    let m = transform;
+    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+  }
+
   // set the transform on the context
   _updateTransform() {
-    let m = this._transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    this._applyTransform(this._transform);
     this.redraw();
     if (this.callbacks.didUpdateTransform) {
-      this.callbacks.didUpdateTransform(m);
+      this.callbacks.didUpdateTransform(this._transform);
     }
   }
 
