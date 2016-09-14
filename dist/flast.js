@@ -1,50 +1,60 @@
 var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};
 
-  function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};var this$0 = this;
+  function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};
+    this._canvas = canvas;
+    this._once(canvas);
+    this._init(options);
+    this.redraw();
+  }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
 
-    // public
-    this.width = canvas.clientWidth;
+  proto$0.reinit = function(options) {
+    this._init(options);
+    this.redraw();
+  };
 
-    this.height = canvas.clientHeight;
-
+  proto$0._init = function(options) {
     this.maxZoom = options.maxZoom || 4;
-
     this.zoomSpeed = options.zoomSpeed || 1.01;
-
     this.getTileUrl = options.getTileUrl || function(zoom, x, y) {
       return (("https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/168d136e60b14850d7a671e8/tile_" + zoom) + ("_" + x) + ("x" + y) + ".jpg");
     };
-
     this.tools = options.tools || [
       Flast.ARROW,
       Flast.LINE,
       Flast.CIRCLE,
       Flast.RECTANGLE
     ];
-
     this.annotations = options.annotations || [];
-
     this.callbacks = options.callbacks || {};
-
-    // private
-    this._canvas = canvas;
-    this._ctx = canvas.getContext('2d');
-    this._dragStart;
-    this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
-    this._transform = this._svg.createSVGMatrix();
     this._currentAnnotation = null;
     this._currentShape = null;
-    this._maxScale = 2;
+    this._maxScale = options.maxScale || 2;
     this._state = {
       mouse: 'up', // 'down'
       tool: 'none', // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
       dragging: false,
       drawing: false
     }
+    this._contentSize = {
+      width: options.width || 624 * Math.pow(2, this.maxZoom),
+      height: options.height || 416 * Math.pow(2, this.maxZoom)
+    };
+    this.setTileSize({
+      width: this._contentSize.width / Math.pow(2, this.maxZoom),
+      height: this._contentSize.height / Math.pow(2, this.maxZoom)
+    });
+    this._transform.a = this._transform.d = this._minScale;
+    this._applyTransform(this._transform);
+  };
 
+  proto$0._once = function(canvas) {var this$0 = this;
+    this.width = canvas.clientWidth;
+    this.height = canvas.clientHeight;
+    this._ctx = canvas.getContext('2d');
+    this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
+    this._transform = this._svg.createSVGMatrix();
     this._addEventListeners();
     this._configureCanvas();
-
     window.onresize = function(event)  {
       var transform = this$0._transform;
       this$0.width = canvas.clientWidth;
@@ -54,23 +64,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       this$0._applyTransform(transform);
       this$0.redraw();
     };
-
-    this._contentSize = {
-      width: options.width || 624 * Math.pow(2, this.maxZoom),
-      height: options.height || 416 * Math.pow(2, this.maxZoom)
-    };
-
-    this.setTileSize({
-      width: this._contentSize.width / Math.pow(2, this.maxZoom),
-      height: this._contentSize.height / Math.pow(2, this.maxZoom)
-    });
-
-    // zoom out as far as possible to start
-    this._transform.a = this._transform.d = this._minScale;
-    this._applyTransform(this._transform);
-
-    this.redraw();
-  }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
+  };
 
   proto$0.setTool = function(toolName) {
     var tool = this.tools.find(function(tool)  {

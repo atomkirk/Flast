@@ -1,50 +1,60 @@
 class Flast {
 
   constructor(canvas, options = {}) {
+    this._canvas = canvas;
+    this._once(canvas);
+    this._init(options);
+    this.redraw();
+  }
 
-    // public
-    this.width = canvas.clientWidth;
+  reinit(options) {
+    this._init(options);
+    this.redraw();
+  }
 
-    this.height = canvas.clientHeight;
-
+  _init(options) {
     this.maxZoom = options.maxZoom || 4;
-
     this.zoomSpeed = options.zoomSpeed || 1.01;
-
     this.getTileUrl = options.getTileUrl || function(zoom, x, y) {
       return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/168d136e60b14850d7a671e8/tile_${zoom}_${x}x${y}.jpg`;
     };
-
     this.tools = options.tools || [
       Flast.ARROW,
       Flast.LINE,
       Flast.CIRCLE,
       Flast.RECTANGLE
     ];
-
     this.annotations = options.annotations || [];
-
     this.callbacks = options.callbacks || {};
-
-    // private
-    this._canvas = canvas;
-    this._ctx = canvas.getContext('2d');
-    this._dragStart;
-    this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
-    this._transform = this._svg.createSVGMatrix();
     this._currentAnnotation = null;
     this._currentShape = null;
-    this._maxScale = 2;
+    this._maxScale = options.maxScale || 2;
     this._state = {
       mouse: 'up', // 'down'
       tool: 'none', // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
       dragging: false,
       drawing: false
     }
+    this._contentSize = {
+      width: options.width || 624 * Math.pow(2, this.maxZoom),
+      height: options.height || 416 * Math.pow(2, this.maxZoom)
+    };
+    this.setTileSize({
+      width: this._contentSize.width / Math.pow(2, this.maxZoom),
+      height: this._contentSize.height / Math.pow(2, this.maxZoom)
+    });
+    this._transform.a = this._transform.d = this._minScale;
+    this._applyTransform(this._transform);
+  }
 
+  _once(canvas) {
+    this.width = canvas.clientWidth;
+    this.height = canvas.clientHeight;
+    this._ctx = canvas.getContext('2d');
+    this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
+    this._transform = this._svg.createSVGMatrix();
     this._addEventListeners();
     this._configureCanvas();
-
     window.onresize = (event) => {
       let transform = this._transform;
       this.width = canvas.clientWidth;
@@ -54,22 +64,6 @@ class Flast {
       this._applyTransform(transform);
       this.redraw();
     };
-
-    this._contentSize = {
-      width: options.width || 624 * Math.pow(2, this.maxZoom),
-      height: options.height || 416 * Math.pow(2, this.maxZoom)
-    };
-
-    this.setTileSize({
-      width: this._contentSize.width / Math.pow(2, this.maxZoom),
-      height: this._contentSize.height / Math.pow(2, this.maxZoom)
-    });
-
-    // zoom out as far as possible to start
-    this._transform.a = this._transform.d = this._minScale;
-    this._applyTransform(this._transform);
-
-    this.redraw();
   }
 
   setTool(toolName) {
