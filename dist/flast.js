@@ -43,6 +43,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       width: this._contentSize.width / Math.pow(2, this.maxZoom),
       height: this._contentSize.height / Math.pow(2, this.maxZoom)
     });
+    this._transform.e = this._transform.f = 0;
     this._transform.a = this._transform.d = this._minScale;
     this._applyTransform(this._transform);
   };
