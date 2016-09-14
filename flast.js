@@ -213,12 +213,6 @@ class Flast {
 
   selectAnnotation(annotation) {
     this._currentAnnotation = annotation;
-    if (this.callbacks.didSelectAnnotation) {
-      this.callbacks.didSelectAnnotation(annotation);
-      // if (this.callbacks.didStartAnnotation) {
-      //   this.callbacks.didStartAnnotation(annotation);
-      // }
-    }
     this.redraw();
   }
 
@@ -383,6 +377,9 @@ class Flast {
           });
           if (tool.hitTest(shape.geometry, pt)) {
             this.selectAnnotation(annotation);
+            if (this.callbacks.didSelectAnnotation) {
+              this.callbacks.didSelectAnnotation(annotation);
+            }
             return;
           }
         }

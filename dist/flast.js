@@ -213,12 +213,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
   proto$0.selectAnnotation = function(annotation) {
     this._currentAnnotation = annotation;
-    if (this.callbacks.didSelectAnnotation) {
-      this.callbacks.didSelectAnnotation(annotation);
-      // if (this.callbacks.didStartAnnotation) {
-      //   this.callbacks.didStartAnnotation(annotation);
-      // }
-    }
     this.redraw();
   };
 
@@ -383,6 +377,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
           });
           if (tool.hitTest(shape.geometry, pt$0)) {
             $that$0.selectAnnotation(annotation);
+            if ($that$0.callbacks.didSelectAnnotation) {
+              $that$0.callbacks.didSelectAnnotation(annotation);
+            }
             {$retVoid$0 = true;return}
           }
         })(shape);if($retVoid$0===true){$retVoid$0=void 0;return}};$D$15 = $D$16 = $D$17 = $D$18 = void 0;
