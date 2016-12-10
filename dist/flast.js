@@ -173,8 +173,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
         // set how shape should look by default
         // (can be overriden in drawInContext)
-        $that$0._ctx.fillStyle = '#FF0000';
-        $that$0._ctx.strokeStyle = '#FF0000';
+        $that$0._ctx.fillStyle = annotation.color || '#FF0000';
+        $that$0._ctx.strokeStyle = annotation.color || '#FF0000';
         $that$0._ctx.lineWidth = 10;
 
         tool.drawInContext($that$0._ctx, shape.geometry);
