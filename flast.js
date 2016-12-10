@@ -173,8 +173,8 @@ class Flast {
 
         // set how shape should look by default
         // (can be overriden in drawInContext)
-        this._ctx.fillStyle = '#FF0000';
-        this._ctx.strokeStyle = '#FF0000';
+        this._ctx.fillStyle = annotation.color || '#FF0000';
+        this._ctx.strokeStyle = annotation.color || '#FF0000';
         this._ctx.lineWidth = 10;
 
         tool.drawInContext(this._ctx, shape.geometry);
