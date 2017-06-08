@@ -390,7 +390,11 @@ class Flast {
   _mouseMove(e) {
     let pt = this._eventPoint(e);
     if (this._state.mouse === 'down' && !this._state.dragging) {
-      this._state.dragging = true;
+      let distance = Flast._distance(pt, this._dragStart)
+      // have to move a threshold distance to be counted as dragging
+      if (distance > 5) {
+        this._state.dragging = true;
+      }
     }
     if (this._state.dragging) {
       let dx = (pt.x - this._dragStart.x);
@@ -508,6 +512,12 @@ class Flast {
     return this.tools.find((tool) => {
       return tool.name === this._state.tool;
     });
+  }
+
+  static _distance(a, b) {
+    return Math.sqrt(Math.pow(a.x - b.x, 2) +
+                     Math.pow(a.y - b.y, 2));
+
   }
 
   static get ARROW() {
@@ -645,7 +655,7 @@ class Flast {
       },
       updateGeometry: function(geometry, pt) {
         let c = geometry.center;
-        geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
+        geometry.radius = Flast._distance(pt, c)
         return geometry;
       },
       boundingRect(geometry) {
@@ -667,8 +677,7 @@ class Flast {
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        let distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
-                       Math.pow(pt.y - geometry.center.y, 2));
+        let distance = Flast._distance(pt, geometry.center);
         return Math.abs(distance - geometry.radius) < 10;
       }
     };
