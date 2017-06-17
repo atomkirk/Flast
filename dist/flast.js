@@ -390,7 +390,11 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   proto$0._mouseMove = function(e) {
     var pt = this._eventPoint(e);
     if (this._state.mouse === 'down' && !this._state.dragging) {
-      this._state.dragging = true;
+      var distance = Flast._distance(pt, this._dragStart)
+      // have to move a threshold distance to be counted as dragging
+      if (distance > 5) {
+        this._state.dragging = true;
+      }
     }
     if (this._state.dragging) {
       var dx = (pt.x - this._dragStart.x);
@@ -508,6 +512,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     return this.tools.find(function(tool)  {
       return tool.name === this$0._state.tool;
     });
+  };
+
+  static$0._distance = function(a, b) {
+    return Math.sqrt(Math.pow(a.x - b.x, 2) +
+                     Math.pow(a.y - b.y, 2));
+
   };
 
   function $static_ARROW_get$0() {
@@ -645,7 +655,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       },
       updateGeometry: function(geometry, pt) {
         var c = geometry.center;
-        geometry.radius = Math.sqrt(Math.pow(pt.x - c.x, 2) + Math.pow(pt.y - c.y, 2));
+        geometry.radius = Flast._distance(pt, c)
         return geometry;
       },
       boundingRect: function(geometry) {
@@ -667,8 +677,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.stroke();
       },
       hitTest: function(geometry, pt) {
-        var distance = Math.sqrt(Math.pow(pt.x - geometry.center.x, 2) +
-                       Math.pow(pt.y - geometry.center.y, 2));
+        var distance = Flast._distance(pt, geometry.center);
         return Math.abs(distance - geometry.radius) < 10;
       }
     };
