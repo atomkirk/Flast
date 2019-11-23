@@ -213,6 +213,17 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this.redraw();
   };
 
+  proto$0.cancelAnnotation = function() {
+    if (this._currentAnnotation) {
+      if (this.callbacks.didCancelAnnotation) {
+        this.callbacks.didCancelAnnotation(this._currentAnnotation);
+      }
+    }
+    this._currentAnnotation = null;
+    this._state.tool = 'none';
+    this.redraw();
+  };
+
   proto$0.selectAnnotation = function(annotation) {
     this._currentAnnotation = annotation;
     this.redraw();

@@ -213,6 +213,17 @@ class Flast {
     this.redraw();
   }
 
+  cancelAnnotation() {
+    if (this._currentAnnotation) {
+      if (this.callbacks.didCancelAnnotation) {
+        this.callbacks.didCancelAnnotation(this._currentAnnotation);
+      }
+    }
+    this._currentAnnotation = null;
+    this._state.tool = 'none';
+    this.redraw();
+  }
+
   selectAnnotation(annotation) {
     this._currentAnnotation = annotation;
     this.redraw();
