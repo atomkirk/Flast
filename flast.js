@@ -51,7 +51,9 @@ class Flast {
   _once(canvas) {
     this.width = canvas.clientWidth;
     this.height = canvas.clientHeight;
-    this._ctx = canvas.getContext('2d');
+    let context = canvas.getContext('2d');
+    context.imageSmoothingEnabled = false
+    this._ctx = context
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
     this._addEventListeners();
