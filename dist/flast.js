@@ -1,3 +1,6 @@
+var _hitMargin = void 0
+var _lineWidth = void 0
+
 var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={"a":t};return o["a"]===t})({},{});var DP$0 = Object.defineProperty;var GOPD$0 = Object.getOwnPropertyDescriptor;var MIXIN$0 = function(t,s){for(var p in s){if(s.hasOwnProperty(p)){DP$0(t,p,GOPD$0(s,p));}}return t};var DPS$0 = Object.defineProperties;var static$0={},proto$0={};var S_ITER$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol.iterator||'@@iterator';var S_MARK$0 = typeof Symbol!=='undefined'&&Symbol&&Symbol["__setObjectSetter__"];function GET_ITER$0(v){if(v){if(Array.isArray(v))return 0;var f;if(S_MARK$0)S_MARK$0(v);if(typeof v==='object'&&typeof (f=v[S_ITER$0])==='function'){if(S_MARK$0)S_MARK$0(void 0);return f.call(v);}if(S_MARK$0)S_MARK$0(void 0);if((v+'')==='[object Generator]')return v;}throw new Error(v+' is not iterable')};
 
   function Flast(canvas) {var options = arguments[1];if(options === void 0)options = {};
@@ -52,7 +55,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this.width = canvas.clientWidth;
     this.height = canvas.clientHeight;
     var context = canvas.getContext('2d');
-    context.imageSmoothingEnabled = false
+    // context.imageSmoothingEnabled = false
     this._ctx = context
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
@@ -108,19 +111,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     var zoomPercent = (s - mins) / (maxs - mins);
     var zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
     var numTiles = Math.pow(2, zoomLevel);
-    var tileWidth = this._contentSize.width / numTiles;
-    var tileHeight = this._contentSize.height / numTiles;
+    var tileWidth = (this._contentSize.width / numTiles) * window.devicePixelRatio;
+    var tileHeight = (this._contentSize.height / numTiles) * window.devicePixelRatio;
     for (var j = 0; j < numTiles; j++) {
       for (var k = 0; k < numTiles; k++) {
         var tile = {
-          x: Math.floor(j * tileWidth),
-          y: Math.floor(k * tileHeight),
-          width: Math.floor(tileWidth),
-          height: Math.floor(tileHeight)
+          x: j * tileWidth,
+          y: k * tileHeight,
+          width: tileWidth,
+          height: tileHeight
         }
         if (this._intersectRect(rect, tile)) {
           var image = this._tileImage(zoomLevel, j, k);
           if (image.complete && image.naturalHeight !== 0) {
+            // this._ctx.imageSmoothingEnabled = false;
+            // this._ctx.imageSmoothingQuality = 'low';
             this._ctx.drawImage(image, tile.x, tile.y, tile.width, tile.height);
           }
           // if the tile at that zoom level is not loaded, show the lower
@@ -139,6 +144,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
                 var sHeight = image$0.height / childTilesPerParent;
                 var sx = Math.floor(jRemainder * sWidth);
                 var sy = Math.floor(kRemainder * sHeight);
+                // this._ctx.imageSmoothingEnabled = false;
+                // this._ctx.imageSmoothingQuality = 'low';
                 this._ctx.drawImage(image$0, sx, sy, sWidth, sHeight, tile.x, tile.y, tile.width, tile.height);
                 break;
               }
@@ -177,9 +184,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         // (can be overriden in drawInContext)
         $that$0._ctx.fillStyle = annotation.color || '#FF0000';
         $that$0._ctx.strokeStyle = annotation.color || '#FF0000';
-        $that$0._ctx.lineWidth = 10;
+        $that$0._ctx.lineWidth = _lineWidth;
 
-        tool.drawInContext($that$0._ctx, shape.geometry);
+        tool.drawInContext($that$0._ctx, tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
 
         // tests bounding box
         // this._ctx.lineWidth = 1;
@@ -238,7 +245,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       var tool = $that$0.tools.find(function(tool)  {
         return tool.name === shape.kind;
       });
-      var box = tool.boundingRect(shape.geometry);
+      var box = tool.boundingRect(tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
       minX = Math.min(minX, box.x);
       maxX = Math.max(maxX, box.x + box.width);
       minY = Math.min(minY, box.y);
@@ -287,8 +294,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0._configureCanvas = function() {
-    this._canvas.setAttribute('width', this.width);
-    this._canvas.setAttribute('height', this.height);
+    var scale = window.devicePixelRatio
+    this._canvas.style.width = this.width + 'px';
+    this._canvas.style.height = this.height + 'px';
+    // this._canvas.width = this.width * scale;
+    // this._canvas.height = this.height * scale;
+    this._canvas.setAttribute('width', this.width * scale);
+    this._canvas.setAttribute('height', this.height * scale);
+    this._ctx.scale(scale, scale);
+    _hitMargin = 10 * window.devicePixelRatio
+    _lineWidth = 20 * window.devicePixelRatio
   };
 
   proto$0._updateZoom = function(e) {
@@ -299,7 +314,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       // update any shape that is currently being drawn
       if (this._currentShape) {
         var tool = this._currentTool();
-        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
+        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
       }
 
       var factor = Math.pow(this.zoomSpeed, delta);
@@ -340,9 +355,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       var pt = this._eventPoint(e);
       var tool = this._currentTool();
       // set current shape
+      var scaled = {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio}
       this._currentShape = {
         kind: tool.name,
-        geometry: tool.startGeometry(pt)
+        geometry: tool.startGeometry(scaled)
       }
       // callback
       if (this.callbacks.didBeginDrawingShape) {
@@ -388,7 +404,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
           var tool = $that$0.tools.find(function(tool)  {
             return tool.name === shape.kind;
           });
-          if (tool.hitTest(shape.geometry, pt$0)) {
+          if (tool.hitTest(tool.scaleGeometry(shape.geometry, window.devicePixelRatio), pt$0)) {
             $that$0.selectAnnotation(annotation);
             if ($that$0.callbacks.didSelectAnnotation) {
               $that$0.callbacks.didSelectAnnotation(annotation);
@@ -418,7 +434,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
     if (this._state.drawing) {
       var tool = this._currentTool();
-      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
+      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
       this.redraw();
     }
   };
@@ -452,14 +468,13 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   // transform the point from page space to canvas space
   proto$0._transformedPoint = function(x, y) {
     var pt  = this._svg.createSVGPoint();
-    pt.x = x;
-    pt.y = y;
+    pt.x = x * window.devicePixelRatio;
+    pt.y = y * window.devicePixelRatio;
     return pt.matrixTransform(this._transform.inverse());
   };
 
-  proto$0._applyTransform = function(transform) {
-    var m = transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+  proto$0._applyTransform = function(t) {
+    this._ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
   };
 
   // set the transform on the context
@@ -474,8 +489,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   proto$0._clampToBounds = function() {
     var maxWidth = this._contentSize.width * this._transform.a;
     var maxHeight = this._contentSize.height * this._transform.d;
-    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width), 0);
-    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height), 0);
+    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width) * window.devicePixelRatio, 0);
+    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height) * window.devicePixelRatio, 0);
   };
 
   static$0.clamp = function(value, min, max) {
@@ -530,8 +545,62 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   static$0._distance = function(a, b) {
     return Math.sqrt(Math.pow(a.x - b.x, 2) +
                      Math.pow(a.y - b.y, 2));
-
   };
+
+  function $static_LINE_get$0() {
+    return {
+      name: 'line',
+      keyCode: 76,
+      startGeometry: function(pt) {
+        return {
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
+        };
+      },
+      updateGeometry: function(geometry, pt) {
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
+        return geometry;
+      },
+      boundingRect: function(geometry) {
+        var minX = Math.min(geometry.p1.x, geometry.p2.x);
+        var maxX = Math.max(geometry.p1.x, geometry.p2.x);
+        var minY = Math.min(geometry.p1.y, geometry.p2.y);
+        var maxY = Math.max(geometry.p1.y, geometry.p2.y);
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+      },
+      drawInContext: function(ctx, geometry) {
+        var p1 = geometry.p1;
+        var p2 = geometry.p2;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      },
+      hitTest: function(geometry, pt) {
+        return Flast._onLine(geometry, pt);
+      },
+      scaleGeometry: function(geometry, factor) {
+        return {
+          p1: {x: geometry.p1.x * factor, y: geometry.p1.y * factor},
+          p2: {x: geometry.p2.x * factor, y: geometry.p2.y * factor},
+        }
+      }
+    };
+  };DPS$0(Flast,{LINE: {"get": $static_LINE_get$0, "configurable":true,"enumerable":true}, ARROW: {"get": $static_ARROW_get$0, "configurable":true,"enumerable":true}, CIRCLE: {"get": $static_CIRCLE_get$0, "configurable":true,"enumerable":true}, RECTANGLE: {"get": $static_RECTANGLE_get$0, "configurable":true,"enumerable":true}});
 
   function $static_ARROW_get$0() {
     return {
@@ -600,55 +669,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       },
       hitTest: function(geometry, pt) {
         return Flast._onLine(geometry, pt);
-      }
-    };
-  };DPS$0(Flast,{ARROW: {"get": $static_ARROW_get$0, "configurable":true,"enumerable":true}, LINE: {"get": $static_LINE_get$0, "configurable":true,"enumerable":true}, CIRCLE: {"get": $static_CIRCLE_get$0, "configurable":true,"enumerable":true}, RECTANGLE: {"get": $static_RECTANGLE_get$0, "configurable":true,"enumerable":true}});
-
-  function $static_LINE_get$0() {
-    return {
-      name: 'line',
-      keyCode: 76,
-      startGeometry: function(pt) {
-        return {
-          p1: {
-            x: pt.x,
-            y: pt.y
-          },
-          p2: {
-            x: pt.x,
-            y: pt.y
-          }
-        };
       },
-      updateGeometry: function(geometry, pt) {
-        geometry.p2 = {
-          x: pt.x,
-          y: pt.y
-        };
-        return geometry;
-      },
-      boundingRect: function(geometry) {
-        var minX = Math.min(geometry.p1.x, geometry.p2.x);
-        var maxX = Math.max(geometry.p1.x, geometry.p2.x);
-        var minY = Math.min(geometry.p1.y, geometry.p2.y);
-        var maxY = Math.max(geometry.p1.y, geometry.p2.y);
+      scaleGeometry: function(geometry, factor) {
         return {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY
+          p1: {x: geometry.p1.x * factor, y: geometry.p1.y * factor},
+          p2: {x: geometry.p2.x * factor, y: geometry.p2.y * factor},
         }
-      },
-      drawInContext: function(ctx, geometry) {
-        var p1 = geometry.p1;
-        var p2 = geometry.p2;
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-      },
-      hitTest: function(geometry, pt) {
-        return Flast._onLine(geometry, pt);
       }
     };
   }
@@ -691,7 +717,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       },
       hitTest: function(geometry, pt) {
         var distance = Flast._distance(pt, geometry.center);
-        return Math.abs(distance - geometry.radius) < 10;
+        return Math.abs(distance - geometry.radius) < _hitMargin;
+      },
+      scaleGeometry: function(geometry, factor) {
+        return {
+          center: {
+            x: geometry.center.x * factor,
+            y: geometry.center.y * factor
+          },
+          radius: geometry.radius * factor
+        };
       }
     };
   }
@@ -738,8 +773,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
           Math.abs((geometry.y + geometry.height) - pt.y)
         ];
         $D$23 = GET_ITER$0(distances);$D$25 = $D$23 === 0;$D$24 = ($D$25 ? distances.length : void 0);for (var dist ;$D$25 ? ($D$23 < $D$24) : !($D$24 = $D$23["next"]())["done"];){dist = ($D$25 ? distances[$D$23++] : $D$24["value"]);
-          if (dist < 10) return true;
+          if (dist < _hitMargin) return true;
         };$D$23 = $D$24 = $D$25 = void 0;
+      },
+      scaleGeometry: function(geometry, factor) {
+        return {
+          x: geometry.x * factor,
+          y: geometry.y * factor,
+          width: geometry.width * factor,
+          height: geometry.height * factor
+        };
       }
     };
   }
@@ -754,10 +797,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     var cross = dxc * dyl - dyc * dxl;
 
     return Math.abs(cross) < 20000 &&
-           point.x < Math.max(line.p1.x, line.p2.x) + 10 &&
-           point.x > Math.min(line.p1.x, line.p2.x) - 10 &&
-           point.y < Math.max(line.p1.y, line.p2.y) + 10 &&
-           point.y > Math.min(line.p1.y, line.p2.y) - 10;
+           point.x < Math.max(line.p1.x, line.p2.x) + _hitMargin &&
+           point.x > Math.min(line.p1.x, line.p2.x) - _hitMargin &&
+           point.y < Math.max(line.p1.y, line.p2.y) + _hitMargin &&
+           point.y > Math.min(line.p1.y, line.p2.y) - _hitMargin;
   };
-
 MIXIN$0(Flast,static$0);MIXIN$0(Flast.prototype,proto$0);static$0=proto$0=void 0;return Flast;})();

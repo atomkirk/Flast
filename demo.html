@@ -5,25 +5,103 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Zooming Test</title>
     <style type="text/css" media="screen">
-      body { background:#eee; margin:1em; text-align:center; }
+      body { background:#eee; margin:1em; }
       canvas { display:block; margin:1em auto; background:#fff; border:1px solid #ccc }
+
+      /* The side navigation menu */
+      .sidenav {
+        height: 100%; /* 100% Full-height */
+        width: 250px; /* 0 width - change this with JavaScript */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Stay on top */
+        top: 0; /* Stay at the top */
+        left: 0;
+        background-color: #111; /* Black*/
+        overflow-x: hidden; /* Disable horizontal scroll */
+        padding-top: 60px; /* Place content 60px from the top */
+        transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+      }
+
+      /* The navigation menu links */
+      .sidenav a {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        display: block;
+        transition: 0.3s;
+      }
+
+      /* When you mouse over the navigation links, change their color */
+      .sidenav a:hover {
+        color: #f1f1f1;
+      }
+
+      /* Position and style the close button (top right corner) */
+      .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+      }
+
+      /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
+      #main {
+        transition: margin-left .5s;
+        padding: 20px;
+        text-align: center;
+      }
+
+      /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+      @media screen and (max-height: 450px) {
+        .sidenav {padding-top: 15px;}
+        .sidenav a {font-size: 18px;}
+      }
     </style>
     <script src="flast.js"></script>
   </head>
   <body>
-    <!-- <canvas width="800" height="600"></canvas> -->
-    <canvas style="width: 100%; height: 100%;"></canvas>
-    <!-- <canvas style="width: 800px; height: 600px;"></canvas> -->
-    <!-- <canvas width="800" height="600"></canvas> -->
+    <div id="mySidenav" class="sidenav">
+      <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=0&width=9996&height=12936">Letter PDF</a>
+      <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=1&width=19998&height=15453">Landscape letter</a>
+      <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=2&width=19980&height=13320">Civil drawing</a>
+      <a href="#">Clients</a>
+      <a href="#">Contact</a>
+    </div>
+    <div id="main">
+      <!-- <canvas width="800" height="600"></canvas> -->
+      <!-- <canvas style="width: 100%; height: 100%;"></canvas> -->
+      <canvas style="width: 800px; height: 600px;"></canvas>
+      <!-- <canvas width="800" height="600"></canvas> -->
+
+      <button onclick="selectArrowTool()">arrow</button>
+      <button onclick="selectLineTool()">line</button>
+      <button onclick="selectCircleTool()">circle</button>
+      <button onclick="selectRectangleTool()">rectangle</button>
+      <button onclick="center()">center</button>
+      <button id="js-done-button" style="display: none;" onclick="done()">done</button>
+    </div>
 
     <script type="text/javascript" charset="utf-8">
+      function parseQuery(queryString) {
+        let query = {};
+        let pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+        for (let i = 0; i < pairs.length; i++) {
+          let pair = pairs[i].split('=');
+          query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+        }
+        return query;
+      }
+
       window.onload = () => {
-        var canvas = document.getElementsByTagName('canvas')[0];
+        let query = parseQuery(window.location.search)
+        let canvas = document.getElementsByTagName('canvas')[0];
         window.editor = new Flast(canvas, {
-          width: 7727,
-          height: 10000,
+          width: query.width,
+          height: query.height,
           getTileUrl: function(zoom, x, y) {
-            return `https://s3-us-west-2.amazonaws.com/useredline-api/development/tiles/a4d450cf8bdf8916a860658a/tile_${zoom}_${x}x${y}.jpg`;
+            return `https://flast-redline-dvp-tiles.s3-us-west-2.amazonaws.com/${query.token}/page_${query.page}/zoom_${zoom}/tile_${x}x${y}.png`
           },
           tools: [
             Flast.ARROW,
@@ -104,12 +182,5 @@
         editor.completeAnnotation();
       }
     </script>
-    <button onclick="selectArrowTool()">arrow</button>
-    <button onclick="selectLineTool()">line</button>
-    <button onclick="selectCircleTool()">circle</button>
-    <button onclick="selectRectangleTool()">rectangle</button>
-    <button onclick="center()">center</button>
-    <button id="js-done-button" style="display: none;" onclick="done()">done</button>
-    <div style="border: 1px black solid; width: 200px; height: 200px;"></div>
   </body>
 </html>

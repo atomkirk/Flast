@@ -1,3 +1,6 @@
+let _hitMargin
+let _lineWidth
+
 class Flast {
 
   constructor(canvas, options = {}) {
@@ -52,7 +55,7 @@ class Flast {
     this.width = canvas.clientWidth;
     this.height = canvas.clientHeight;
     let context = canvas.getContext('2d');
-    context.imageSmoothingEnabled = false
+    // context.imageSmoothingEnabled = false
     this._ctx = context
     this._svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg');
     this._transform = this._svg.createSVGMatrix();
@@ -108,19 +111,21 @@ class Flast {
     let zoomPercent = (s - mins) / (maxs - mins);
     let zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
     let numTiles = Math.pow(2, zoomLevel);
-    let tileWidth = this._contentSize.width / numTiles;
-    let tileHeight = this._contentSize.height / numTiles;
+    let tileWidth = (this._contentSize.width / numTiles) * window.devicePixelRatio;
+    let tileHeight = (this._contentSize.height / numTiles) * window.devicePixelRatio;
     for (let j = 0; j < numTiles; j++) {
       for (let k = 0; k < numTiles; k++) {
         let tile = {
-          x: Math.floor(j * tileWidth),
-          y: Math.floor(k * tileHeight),
-          width: Math.floor(tileWidth),
-          height: Math.floor(tileHeight)
+          x: j * tileWidth,
+          y: k * tileHeight,
+          width: tileWidth,
+          height: tileHeight
         }
         if (this._intersectRect(rect, tile)) {
           let image = this._tileImage(zoomLevel, j, k);
           if (image.complete && image.naturalHeight !== 0) {
+            // this._ctx.imageSmoothingEnabled = false;
+            // this._ctx.imageSmoothingQuality = 'low';
             this._ctx.drawImage(image, tile.x, tile.y, tile.width, tile.height);
           }
           // if the tile at that zoom level is not loaded, show the lower
@@ -139,6 +144,8 @@ class Flast {
                 let sHeight = image.height / childTilesPerParent;
                 let sx = Math.floor(jRemainder * sWidth);
                 let sy = Math.floor(kRemainder * sHeight);
+                // this._ctx.imageSmoothingEnabled = false;
+                // this._ctx.imageSmoothingQuality = 'low';
                 this._ctx.drawImage(image, sx, sy, sWidth, sHeight, tile.x, tile.y, tile.width, tile.height);
                 break;
               }
@@ -177,9 +184,9 @@ class Flast {
         // (can be overriden in drawInContext)
         this._ctx.fillStyle = annotation.color || '#FF0000';
         this._ctx.strokeStyle = annotation.color || '#FF0000';
-        this._ctx.lineWidth = 10;
+        this._ctx.lineWidth = _lineWidth;
 
-        tool.drawInContext(this._ctx, shape.geometry);
+        tool.drawInContext(this._ctx, tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
 
         // tests bounding box
         // this._ctx.lineWidth = 1;
@@ -238,7 +245,7 @@ class Flast {
       let tool = this.tools.find((tool) => {
         return tool.name === shape.kind;
       });
-      let box = tool.boundingRect(shape.geometry);
+      let box = tool.boundingRect(tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
       minX = Math.min(minX, box.x);
       maxX = Math.max(maxX, box.x + box.width);
       minY = Math.min(minY, box.y);
@@ -287,8 +294,16 @@ class Flast {
   }
 
   _configureCanvas() {
-    this._canvas.setAttribute('width', this.width);
-    this._canvas.setAttribute('height', this.height);
+    var scale = window.devicePixelRatio
+    this._canvas.style.width = this.width + 'px';
+    this._canvas.style.height = this.height + 'px';
+    // this._canvas.width = this.width * scale;
+    // this._canvas.height = this.height * scale;
+    this._canvas.setAttribute('width', this.width * scale);
+    this._canvas.setAttribute('height', this.height * scale);
+    this._ctx.scale(scale, scale);
+    _hitMargin = 10 * window.devicePixelRatio
+    _lineWidth = 20 * window.devicePixelRatio
   }
 
   _updateZoom(e) {
@@ -299,7 +314,7 @@ class Flast {
       // update any shape that is currently being drawn
       if (this._currentShape) {
         let tool = this._currentTool();
-        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
+        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
       }
 
       let factor = Math.pow(this.zoomSpeed, delta);
@@ -340,9 +355,10 @@ class Flast {
       let pt = this._eventPoint(e);
       let tool = this._currentTool();
       // set current shape
+      let scaled = {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio}
       this._currentShape = {
         kind: tool.name,
-        geometry: tool.startGeometry(pt)
+        geometry: tool.startGeometry(scaled)
       }
       // callback
       if (this.callbacks.didBeginDrawingShape) {
@@ -388,7 +404,7 @@ class Flast {
           let tool = this.tools.find((tool) => {
             return tool.name === shape.kind;
           });
-          if (tool.hitTest(shape.geometry, pt)) {
+          if (tool.hitTest(tool.scaleGeometry(shape.geometry, window.devicePixelRatio), pt)) {
             this.selectAnnotation(annotation);
             if (this.callbacks.didSelectAnnotation) {
               this.callbacks.didSelectAnnotation(annotation);
@@ -418,7 +434,7 @@ class Flast {
     }
     if (this._state.drawing) {
       let tool = this._currentTool();
-      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, pt);
+      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
       this.redraw();
     }
   }
@@ -452,14 +468,13 @@ class Flast {
   // transform the point from page space to canvas space
   _transformedPoint(x, y) {
     let pt  = this._svg.createSVGPoint();
-    pt.x = x;
-    pt.y = y;
+    pt.x = x * window.devicePixelRatio;
+    pt.y = y * window.devicePixelRatio;
     return pt.matrixTransform(this._transform.inverse());
   }
 
-  _applyTransform(transform) {
-    let m = transform;
-    this._ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+  _applyTransform(t) {
+    this._ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
   }
 
   // set the transform on the context
@@ -474,8 +489,8 @@ class Flast {
   _clampToBounds() {
     let maxWidth = this._contentSize.width * this._transform.a;
     let maxHeight = this._contentSize.height * this._transform.d;
-    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width), 0);
-    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height), 0);
+    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width) * window.devicePixelRatio, 0);
+    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height) * window.devicePixelRatio, 0);
   }
 
   static clamp(value, min, max) {
@@ -530,7 +545,61 @@ class Flast {
   static _distance(a, b) {
     return Math.sqrt(Math.pow(a.x - b.x, 2) +
                      Math.pow(a.y - b.y, 2));
+  }
 
+  static get LINE() {
+    return {
+      name: 'line',
+      keyCode: 76,
+      startGeometry(pt) {
+        return {
+          p1: {
+            x: pt.x,
+            y: pt.y
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y
+          }
+        };
+      },
+      updateGeometry(geometry, pt) {
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y
+        };
+        return geometry;
+      },
+      boundingRect(geometry) {
+        let minX = Math.min(geometry.p1.x, geometry.p2.x);
+        let maxX = Math.max(geometry.p1.x, geometry.p2.x);
+        let minY = Math.min(geometry.p1.y, geometry.p2.y);
+        let maxY = Math.max(geometry.p1.y, geometry.p2.y);
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+      },
+      drawInContext(ctx, geometry) {
+        let p1 = geometry.p1;
+        let p2 = geometry.p2;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      },
+      hitTest(geometry, pt) {
+        return Flast._onLine(geometry, pt);
+      },
+      scaleGeometry(geometry, factor) {
+        return {
+          p1: {x: geometry.p1.x * factor, y: geometry.p1.y * factor},
+          p2: {x: geometry.p2.x * factor, y: geometry.p2.y * factor},
+        }
+      }
+    };
   }
 
   static get ARROW() {
@@ -549,7 +618,7 @@ class Flast {
           }
         };
       },
-      updateGeometry: function(geometry, pt) {
+      updateGeometry(geometry, pt) {
         geometry.p2 = {
           x: pt.x,
           y: pt.y
@@ -600,55 +669,12 @@ class Flast {
       },
       hitTest(geometry, pt) {
         return Flast._onLine(geometry, pt);
-      }
-    };
-  }
-
-  static get LINE() {
-    return {
-      name: 'line',
-      keyCode: 76,
-      startGeometry: function(pt) {
-        return {
-          p1: {
-            x: pt.x,
-            y: pt.y
-          },
-          p2: {
-            x: pt.x,
-            y: pt.y
-          }
-        };
       },
-      updateGeometry: function(geometry, pt) {
-        geometry.p2 = {
-          x: pt.x,
-          y: pt.y
-        };
-        return geometry;
-      },
-      boundingRect(geometry) {
-        let minX = Math.min(geometry.p1.x, geometry.p2.x);
-        let maxX = Math.max(geometry.p1.x, geometry.p2.x);
-        let minY = Math.min(geometry.p1.y, geometry.p2.y);
-        let maxY = Math.max(geometry.p1.y, geometry.p2.y);
+      scaleGeometry(geometry, factor) {
         return {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY
+          p1: {x: geometry.p1.x * factor, y: geometry.p1.y * factor},
+          p2: {x: geometry.p2.x * factor, y: geometry.p2.y * factor},
         }
-      },
-      drawInContext: function(ctx, geometry) {
-        let p1 = geometry.p1;
-        let p2 = geometry.p2;
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-      },
-      hitTest: function(geometry, pt) {
-        return Flast._onLine(geometry, pt);
       }
     };
   }
@@ -666,7 +692,7 @@ class Flast {
           radius: 0
         };
       },
-      updateGeometry: function(geometry, pt) {
+      updateGeometry(geometry, pt) {
         let c = geometry.center;
         geometry.radius = Flast._distance(pt, c)
         return geometry;
@@ -683,15 +709,24 @@ class Flast {
           height: maxY - minY
         }
       },
-      drawInContext: function(ctx, geometry) {
+      drawInContext(ctx, geometry) {
         let g = geometry;
         ctx.beginPath();
         ctx.arc(g.center.x, g.center.y, g.radius, 0, 2 * Math.PI);
         ctx.stroke();
       },
-      hitTest: function(geometry, pt) {
+      hitTest(geometry, pt) {
         let distance = Flast._distance(pt, geometry.center);
-        return Math.abs(distance - geometry.radius) < 10;
+        return Math.abs(distance - geometry.radius) < _hitMargin;
+      },
+      scaleGeometry(geometry, factor) {
+        return {
+          center: {
+            x: geometry.center.x * factor,
+            y: geometry.center.y * factor
+          },
+          radius: geometry.radius * factor
+        };
       }
     };
   }
@@ -738,8 +773,16 @@ class Flast {
           Math.abs((geometry.y + geometry.height) - pt.y)
         ];
         for (let dist of distances) {
-          if (dist < 10) return true;
+          if (dist < _hitMargin) return true;
         }
+      },
+      scaleGeometry(geometry, factor) {
+        return {
+          x: geometry.x * factor,
+          y: geometry.y * factor,
+          width: geometry.width * factor,
+          height: geometry.height * factor
+        };
       }
     };
   }
@@ -754,10 +797,9 @@ class Flast {
     let cross = dxc * dyl - dyc * dxl;
 
     return Math.abs(cross) < 20000 &&
-           point.x < Math.max(line.p1.x, line.p2.x) + 10 &&
-           point.x > Math.min(line.p1.x, line.p2.x) - 10 &&
-           point.y < Math.max(line.p1.y, line.p2.y) + 10 &&
-           point.y > Math.min(line.p1.y, line.p2.y) - 10;
+           point.x < Math.max(line.p1.x, line.p2.x) + _hitMargin &&
+           point.x > Math.min(line.p1.x, line.p2.x) - _hitMargin &&
+           point.y < Math.max(line.p1.y, line.p2.y) + _hitMargin &&
+           point.y > Math.min(line.p1.y, line.p2.y) - _hitMargin;
   }
-
 }
