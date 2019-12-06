@@ -168,7 +168,9 @@
       function center(e) {
         if (window.lastAnnotation) {
           editor.selectAnnotation(window.lastAnnotation);
+          console.log(window.lastAnnotation)
           let rect = editor.boundingRectFor(window.lastAnnotation)
+          console.log(rect)
           editor.zoomToRect({
             x: rect.x - 200,
             y: rect.y - 200,

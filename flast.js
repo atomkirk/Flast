@@ -72,6 +72,11 @@ class Flast {
     };
   }
 
+  _pixelRatio() {
+    // return 1
+    return window.devicePixelRatio
+  }
+
   setTool(toolName) {
     let tool = this.tools.find((tool) => {
       return tool.name === toolName;
@@ -111,8 +116,8 @@ class Flast {
     let zoomPercent = (s - mins) / (maxs - mins);
     let zoomLevel = Math.max(Math.ceil(zoomPercent * this.maxZoom), 1);
     let numTiles = Math.pow(2, zoomLevel);
-    let tileWidth = (this._contentSize.width / numTiles) * window.devicePixelRatio;
-    let tileHeight = (this._contentSize.height / numTiles) * window.devicePixelRatio;
+    let tileWidth = (this._contentSize.width / numTiles) * this._pixelRatio();
+    let tileHeight = (this._contentSize.height / numTiles) * this._pixelRatio();
     for (let j = 0; j < numTiles; j++) {
       for (let k = 0; k < numTiles; k++) {
         let tile = {
@@ -186,7 +191,7 @@ class Flast {
         this._ctx.strokeStyle = annotation.color || '#FF0000';
         this._ctx.lineWidth = _lineWidth;
 
-        tool.drawInContext(this._ctx, tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
+        tool.drawInContext(this._ctx, tool.scaleGeometry(shape.geometry, this._pixelRatio()));
 
         // tests bounding box
         // this._ctx.lineWidth = 1;
@@ -245,7 +250,7 @@ class Flast {
       let tool = this.tools.find((tool) => {
         return tool.name === shape.kind;
       });
-      let box = tool.boundingRect(tool.scaleGeometry(shape.geometry, window.devicePixelRatio));
+      let box = tool.boundingRect(tool.scaleGeometry(shape.geometry, this._pixelRatio()));
       minX = Math.min(minX, box.x);
       maxX = Math.max(maxX, box.x + box.width);
       minY = Math.min(minY, box.y);
@@ -260,14 +265,16 @@ class Flast {
   }
 
   zoomToRect(rect) {
-    let scaleX = this.width / rect.width;
-    let scaleY = this.height / rect.height;
+    let width = this.width * this._pixelRatio()
+    let height = this.height * this._pixelRatio()
+    let scaleX = width / rect.width;
+    let scaleY = height / rect.height;
     let scale = Math.min(scaleX, scaleY);
     scale = Flast.clamp(scale, this._minScale, this._maxScale);
     this._transform.a = this._transform.d = scale;
 
-    let portWidth = this.width * (1.0 / scale);
-    let portHeight = this.height * (1.0 / scale);
+    let portWidth = width * (1.0 / scale);
+    let portHeight = height * (1.0 / scale);
     this._transform.e = -rect.x * scale;
     this._transform.f = -rect.y * scale;
 
@@ -294,7 +301,7 @@ class Flast {
   }
 
   _configureCanvas() {
-    var scale = window.devicePixelRatio
+    var scale = this._pixelRatio()
     this._canvas.style.width = this.width + 'px';
     this._canvas.style.height = this.height + 'px';
     // this._canvas.width = this.width * scale;
@@ -302,8 +309,8 @@ class Flast {
     this._canvas.setAttribute('width', this.width * scale);
     this._canvas.setAttribute('height', this.height * scale);
     this._ctx.scale(scale, scale);
-    _hitMargin = 10 * window.devicePixelRatio
-    _lineWidth = 20 * window.devicePixelRatio
+    _hitMargin = 60 * this._pixelRatio() * 2
+    _lineWidth = 20 * this._pixelRatio() * 2
   }
 
   _updateZoom(e) {
@@ -314,7 +321,7 @@ class Flast {
       // update any shape that is currently being drawn
       if (this._currentShape) {
         let tool = this._currentTool();
-        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
+        this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / this._pixelRatio(), y: pt.y / this._pixelRatio()});
       }
 
       let factor = Math.pow(this.zoomSpeed, delta);
@@ -355,7 +362,7 @@ class Flast {
       let pt = this._eventPoint(e);
       let tool = this._currentTool();
       // set current shape
-      let scaled = {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio}
+      let scaled = {x: pt.x / this._pixelRatio(), y: pt.y / this._pixelRatio()}
       this._currentShape = {
         kind: tool.name,
         geometry: tool.startGeometry(scaled)
@@ -404,7 +411,7 @@ class Flast {
           let tool = this.tools.find((tool) => {
             return tool.name === shape.kind;
           });
-          if (tool.hitTest(tool.scaleGeometry(shape.geometry, window.devicePixelRatio), pt)) {
+          if (tool.hitTest(tool.scaleGeometry(shape.geometry, this._pixelRatio()), pt)) {
             this.selectAnnotation(annotation);
             if (this.callbacks.didSelectAnnotation) {
               this.callbacks.didSelectAnnotation(annotation);
@@ -434,7 +441,7 @@ class Flast {
     }
     if (this._state.drawing) {
       let tool = this._currentTool();
-      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / window.devicePixelRatio, y: pt.y / window.devicePixelRatio});
+      this._currentShape.geometry = tool.updateGeometry(this._currentShape.geometry, {x: pt.x / this._pixelRatio(), y: pt.y / this._pixelRatio()});
       this.redraw();
     }
   }
@@ -468,8 +475,8 @@ class Flast {
   // transform the point from page space to canvas space
   _transformedPoint(x, y) {
     let pt  = this._svg.createSVGPoint();
-    pt.x = x * window.devicePixelRatio;
-    pt.y = y * window.devicePixelRatio;
+    pt.x = x * this._pixelRatio();
+    pt.y = y * this._pixelRatio();
     return pt.matrixTransform(this._transform.inverse());
   }
 
@@ -489,8 +496,8 @@ class Flast {
   _clampToBounds() {
     let maxWidth = this._contentSize.width * this._transform.a;
     let maxHeight = this._contentSize.height * this._transform.d;
-    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width) * window.devicePixelRatio, 0);
-    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height) * window.devicePixelRatio, 0);
+    this._transform.e = Flast.clamp(this._transform.e, -(maxWidth - this.width) * this._pixelRatio(), 0);
+    this._transform.f = Flast.clamp(this._transform.f, -(maxHeight - this.height) * this._pixelRatio(), 0);
   }
 
   static clamp(value, min, max) {
@@ -640,7 +647,7 @@ class Flast {
       drawInContext(ctx, geometry) {
         let p1 = geometry.p1;
         let p2 = geometry.p2;
-        let arrowHeight = 60.0;
+        let arrowHeight = _lineWidth * 6;
 
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y);
@@ -661,8 +668,8 @@ class Flast {
         ctx.translate(p2.x, p2.y);
         ctx.rotate(radians);
         ctx.moveTo(0, 0);
-        ctx.lineTo(15, arrowHeight);
-        ctx.lineTo(-15, arrowHeight);
+        ctx.lineTo(_lineWidth * 3, arrowHeight);
+        ctx.lineTo(-(_lineWidth * 3), arrowHeight);
         ctx.closePath();
         ctx.restore();
         ctx.fill();
@@ -788,18 +795,46 @@ class Flast {
   }
 
   static _onLine(line, point) {
-    let dxc = point.x - line.p1.x;
-    let dyc = point.y - line.p1.y;
+    let distance = this._pointDistToLine(point, line)
+    return distance < _hitMargin
+  }
 
-    let dxl = line.p2.x - line.p1.x;
-    let dyl = line.p2.y - line.p1.y;
+  static _pointDistToLine(point, line) {
+    let x = point.x
+    let y = point.y
+    let x1 = line.p1.x
+    let y1 = line.p1.y
+    let x2 = line.p2.x
+    let y2 = line.p2.y
 
-    let cross = dxc * dyl - dyc * dxl;
+    var A = x - x1;
+    var B = y - y1;
+    var C = x2 - x1;
+    var D = y2 - y1;
 
-    return Math.abs(cross) < 20000 &&
-           point.x < Math.max(line.p1.x, line.p2.x) + _hitMargin &&
-           point.x > Math.min(line.p1.x, line.p2.x) - _hitMargin &&
-           point.y < Math.max(line.p1.y, line.p2.y) + _hitMargin &&
-           point.y > Math.min(line.p1.y, line.p2.y) - _hitMargin;
+    var dot = A * C + B * D;
+    var len_sq = C * C + D * D;
+    var param = -1;
+    if (len_sq != 0) //in case of 0 length line
+        param = dot / len_sq;
+
+    var xx, yy;
+
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    }
+    else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    }
+    else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+
+    var dx = x - xx;
+    var dy = y - yy;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 }
