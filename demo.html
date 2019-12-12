@@ -2,11 +2,19 @@
 <!-- saved from url=(0048)http://phrogz.net/tmp/canvas_zoom_to_cursor.html -->
 <html lang="en" data-ember-extension="1">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Zooming Test</title>
     <style type="text/css" media="screen">
-      body { background:#eee; margin:1em; }
-      canvas { display:block; margin:1em auto; background:#fff; border:1px solid #ccc }
+      body {
+        background: #eee;
+        margin: 1em;
+      }
+      canvas {
+        display: block;
+        margin: 1em auto;
+        background: #fff;
+        border: 1px solid #ccc;
+      }
 
       /* The side navigation menu */
       .sidenav {
@@ -48,15 +56,19 @@
 
       /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
       #main {
-        transition: margin-left .5s;
+        transition: margin-left 0.5s;
         padding: 20px;
         text-align: center;
       }
 
       /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
       @media screen and (max-height: 450px) {
-        .sidenav {padding-top: 15px;}
-        .sidenav a {font-size: 18px;}
+        .sidenav {
+          padding-top: 15px;
+        }
+        .sidenav a {
+          font-size: 18px;
+        }
       }
     </style>
     <script src="flast.js"></script>
@@ -66,8 +78,7 @@
       <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=0&width=9996&height=12936">Letter PDF</a>
       <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=1&width=19998&height=15453">Landscape letter</a>
       <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=2&width=19980&height=13320">Civil drawing</a>
-      <a href="#">Clients</a>
-      <a href="#">Contact</a>
+      <a href="?token=516ef3f6-cf8a-45e3-b69f-b3768f77ce56&page=1&width=19966&height=30456">Tall DWG</a>
     </div>
     <div id="main">
       <!-- <canvas width="800" height="600"></canvas> -->
@@ -85,53 +96,52 @@
 
     <script type="text/javascript" charset="utf-8">
       function parseQuery(queryString) {
-        let query = {};
-        let pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+        let query = {}
+        let pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&')
         for (let i = 0; i < pairs.length; i++) {
-          let pair = pairs[i].split('=');
-          query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+          let pair = pairs[i].split('=')
+          query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '')
         }
-        return query;
+        return query
       }
 
       window.onload = () => {
         let query = parseQuery(window.location.search)
-        let canvas = document.getElementsByTagName('canvas')[0];
+        let canvas = document.getElementsByTagName('canvas')[0]
         window.editor = new Flast(canvas, {
           width: query.width,
           height: query.height,
           getTileUrl: function(zoom, x, y) {
             return `https://flast-redline-dvp-tiles.s3-us-west-2.amazonaws.com/${query.token}/page_${query.page}/zoom_${zoom}/tile_${x}x${y}.png`
           },
-          tools: [
-            Flast.ARROW,
-            Flast.LINE,
-            Flast.CIRCLE,
-            Flast.RECTANGLE
-          ],
-          annotations: [{
-            shapes: [{
-              kind: 'circle',
-              geometry: {
-                center: {
-                  x: 500,
-                  y: 700
+          tools: [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE],
+          annotations: [
+            {
+              shapes: [
+                {
+                  kind: 'circle',
+                  geometry: {
+                    center: {
+                      x: 500,
+                      y: 700,
+                    },
+                    radius: 200,
+                  },
                 },
-                radius: 200
-              }
-            }]
-          }],
+              ],
+            },
+          ],
           callbacks: {
             didStartAnnotation: function(annotation) {
-              document.querySelector("#js-done-button").style.display = '';
+              document.querySelector('#js-done-button').style.display = ''
             },
             didFinishAnnotation: function(annotation) {
-              window.lastAnnotation = annotation;
-              document.querySelector("#js-done-button").style.display = 'none';
+              window.lastAnnotation = annotation
+              document.querySelector('#js-done-button').style.display = 'none'
             },
             didSelectAnnotation: function(annotation) {
-              window.lastAnnotation = annotation;
-              document.querySelector("#js-done-button").style.display = '';
+              window.lastAnnotation = annotation
+              document.querySelector('#js-done-button').style.display = ''
             },
             didBeginDrawingShape: function(shape) {
               // console.log('didBeginDrawingShape');
@@ -144,30 +154,30 @@
             },
             didUpdateTransform: function(transform) {
               // console.log(transform);
-            }
-          }
-        });
-      };
+            },
+          },
+        })
+      }
 
       function selectArrowTool(e) {
-        editor.setTool('arrow');
+        editor.setTool('arrow')
       }
 
       function selectLineTool(e) {
-        editor.setTool('line');
+        editor.setTool('line')
       }
 
       function selectCircleTool(e) {
-        editor.setTool('circle');
+        editor.setTool('circle')
       }
 
       function selectRectangleTool(e) {
-        editor.setTool('rectangle');
+        editor.setTool('rectangle')
       }
 
       function center(e) {
         if (window.lastAnnotation) {
-          editor.selectAnnotation(window.lastAnnotation);
+          editor.selectAnnotation(window.lastAnnotation)
           console.log(window.lastAnnotation)
           let rect = editor.boundingRectFor(window.lastAnnotation)
           console.log(rect)
@@ -175,13 +185,13 @@
             x: rect.x - 200,
             y: rect.y - 200,
             width: rect.width + 400,
-            height: rect.height + 400
-          });
+            height: rect.height + 400,
+          })
         }
       }
 
       function done(e) {
-        editor.completeAnnotation();
+        editor.completeAnnotation()
       }
     </script>
   </body>
