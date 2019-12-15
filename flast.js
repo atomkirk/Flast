@@ -62,6 +62,8 @@ class Flast {
       let transform = this._transform
       this.canvasWidth = canvas.clientWidth
       this.canvasHeight = canvas.clientHeight
+      this._transform.e = this._transform.f = 0
+      this._transform.a = this._transform.d = this._minScale
       this.setTileSize(this.tileSize)
       this._configureCanvas()
       this._clampToBounds()

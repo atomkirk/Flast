@@ -5,15 +5,32 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Zooming Test</title>
     <style type="text/css" media="screen">
+      html,
       body {
         background: #eee;
-        margin: 1em;
+        width: 100%;
+        height: 100%;
+        margin: 0;
       }
+
+      /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
+      #main {
+        position: relative;
+        transition: margin-left 0.5s;
+        padding: 20px;
+        text-align: center;
+        position: absolute;
+      }
+
       canvas {
-        display: block;
-        margin: 1em auto;
         background: #fff;
         border: 1px solid #ccc;
+        width: 100%;
+        height: 100%;
+        bottom: 0;
+        left: 0;
+        top: 0;
+        right: 0;
       }
 
       /* The side navigation menu */
@@ -54,13 +71,6 @@
         margin-left: 50px;
       }
 
-      /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
-      #main {
-        transition: margin-left 0.5s;
-        padding: 20px;
-        text-align: center;
-      }
-
       /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
       @media screen and (max-height: 450px) {
         .sidenav {
@@ -71,6 +81,7 @@
         }
       }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="flast.js"></script>
   </head>
   <body>
@@ -83,7 +94,7 @@
     <div id="main">
       <!-- <canvas width="800" height="600"></canvas> -->
       <!-- <canvas style="width: 100%; height: 100%;"></canvas> -->
-      <canvas style="width: 800px; height: 600px;"></canvas>
+      <canvas></canvas>
       <!-- <canvas width="800" height="600"></canvas> -->
 
       <button onclick="selectArrowTool()">arrow</button>
@@ -158,6 +169,12 @@
           },
         })
       }
+
+      $(window).on('resize', () => {
+        console.log('here')
+        $('canvas').width($('#main').width())
+        $('canvas').height($('#main').height())
+      })
 
       function selectArrowTool(e) {
         editor.setTool('arrow')

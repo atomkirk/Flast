@@ -62,6 +62,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       var transform = this$0._transform
       this$0.canvasWidth = canvas.clientWidth
       this$0.canvasHeight = canvas.clientHeight
+      this$0._transform.e = this$0._transform.f = 0
+      this$0._transform.a = this$0._transform.d = this$0._minScale
       this$0.setTileSize(this$0.tileSize)
       this$0._configureCanvas()
       this$0._clampToBounds()
@@ -511,12 +513,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     } else {
       adjustedContentHeight = canvasHeight * (contentWidth / canvasWidth)
     }
-    // console.log('canvas width', canvasWidth)
-    // console.log('canvas height', canvasHeight)
-    // console.log('content width', contentWidth)
-    // console.log('adjusted content width', adjustedContentWidth)
-    // console.log('min', -adjustedContentWidth + canvasWidth)
-    // console.log('max', (adjustedContentWidth - contentWidth) / 2.0)
 
     var xMax = (adjustedContentWidth - contentWidth) / 2.0
     var xMin = -adjustedContentWidth + canvasWidth + xMax
