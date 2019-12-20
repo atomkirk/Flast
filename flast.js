@@ -10,11 +10,13 @@ class Flast {
   }
 
   reinit(options) {
-    this._init(options)
+    let merged = Object.assign(this.originalOptions, options)
+    this._init(merged)
     this.redraw()
   }
 
   _init(options) {
+    this.originalOptions = options
     this.maxZoom = options.maxZoom || 4
     this.zoomSpeed = options.zoomSpeed || 1.01
     this.getTileUrl =
@@ -28,11 +30,13 @@ class Flast {
     this._currentAnnotation = null
     this._currentShape = null
     this._maxScale = options.maxScale || 2
+    this._authorColor = options.authorColor
     this._state = {
       mouse: 'up', // 'down'
       tool: 'none', // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
       dragging: false,
       drawing: false,
+      enabled: true,
     }
     this._contentSize = {
       width: options.width || 624 * Math.pow(2, this.maxZoom),
@@ -83,10 +87,17 @@ class Flast {
     })
     if (tool) {
       this._state.tool = toolName
+      if (this.callbacks.didSelectTool) {
+        this.callbacks.didSelectTool(this._state.tool)
+      }
       this.redraw()
     } else {
       console.error('Flask: That tool is not defined.')
     }
+  }
+
+  setEnabled(enabled) {
+    this._state.enabled = enabled
   }
 
   setTileSize(size) {
@@ -188,8 +199,8 @@ class Flast {
 
         // set how shape should look by default
         // (can be overriden in drawInContext)
-        this._ctx.fillStyle = annotation.color || '#FF0000'
-        this._ctx.strokeStyle = annotation.color || '#FF0000'
+        this._ctx.fillStyle = annotation.color || this._authorColor || '#FF0000'
+        this._ctx.strokeStyle = annotation.color || this._authorColor || '#FF0000'
         this._ctx.lineWidth = _lineWidth
 
         tool.drawInContext(this._ctx, tool.scaleGeometry(shape.geometry, this._pixelRatio()))
@@ -220,15 +231,18 @@ class Flast {
 
   completeAnnotation() {
     if (this._currentAnnotation) {
-      if (this.annotations.indexOf(this._currentAnnotation) === -1) {
-        this.annotations.push(this._currentAnnotation)
-      }
+      // if (this.annotations.indexOf(this._currentAnnotation) === -1) {
+      //   this.annotations.push(this._currentAnnotation)
+      // }
       if (this.callbacks.didFinishAnnotation) {
         this.callbacks.didFinishAnnotation(this._currentAnnotation)
       }
     }
-    this._currentAnnotation = null
+    // this._currentAnnotation = null
     this._state.tool = 'none'
+    if (this.callbacks.didSelectTool) {
+      this.callbacks.didSelectTool(null)
+    }
     this.redraw()
   }
 
@@ -240,11 +254,28 @@ class Flast {
     }
     this._currentAnnotation = null
     this._state.tool = 'none'
+    if (this.callbacks.didSelectTool) {
+      this.callbacks.didSelectTool(null)
+    }
+    this.redraw()
+  }
+
+  cancelShape() {
+    if (this._currentShape) {
+      if (this.callbacks.didCancelDrawingShape) {
+        this.callbacks.didCancelDrawingShape(this._currentShape)
+      }
+    }
+    this._state.drawing = false
+    this._currentShape = null
     this.redraw()
   }
 
   selectAnnotation(annotation) {
     this._currentAnnotation = annotation
+    if (this.callbacks.didSelectAnnotation) {
+      this.callbacks.didSelectAnnotation(annotation)
+    }
     this.redraw()
   }
 
@@ -286,6 +317,7 @@ class Flast {
     // this._transform.e += width / 2.0 - (rect.width * scale) / 2.0
     // this._transform.f += height / 2.0 - (rect.height * scale) / 2.0
 
+    this._clampToBounds()
     this._updateTransform()
   }
 
@@ -349,21 +381,26 @@ class Flast {
   }
 
   _mouseDown(e) {
+    console.log('mouse down')
     this._state.mouse = 'down'
     document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none'
     this._dragStart = this._eventPoint(e)
   }
 
   _mouseUp(e) {
+    console.log('mouse up')
+    console.log(this._state)
     this._state.mouse = 'up'
 
     // stop dragging
     if (this._state.dragging) {
+      console.log('stop dragging')
       this._state.dragging = false
     }
 
     // start drawing
-    else if (!this._state.drawing && this._state.tool !== 'none') {
+    else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
+      console.log('start dragging')
       this._state.drawing = true
       let pt = this._eventPoint(e)
       let tool = this._currentTool()
@@ -381,6 +418,7 @@ class Flast {
 
     // stop drawing
     else if (this._state.drawing) {
+      console.log('stop dragging')
       this._state.drawing = false
       // if there is not a current annotation
       if (!this._currentAnnotation) {
@@ -408,7 +446,8 @@ class Flast {
     }
 
     // if nothing already selected
-    else if (!this._currentAnnotation) {
+    else if (this._state.enabled) {
+      console.log('try select annotation')
       // if mouse up over a shape
       let pt = this._eventPoint(e)
       for (let annotation of this.annotations) {
@@ -434,7 +473,7 @@ class Flast {
     if (this._state.mouse === 'down' && !this._state.dragging) {
       let distance = Flast._distance(pt, this._dragStart)
       // have to move a threshold distance to be counted as dragging
-      if (distance > 5) {
+      if (distance > 10) {
         this._state.dragging = true
       }
     }
@@ -453,6 +492,24 @@ class Flast {
       })
       this.redraw()
     }
+    if (this._state.mouse === 'up' && !this._state.drawing && this._state.enabled) {
+      let pt = this._eventPoint(e)
+      var found = false
+      for (let annotation of this.annotations) {
+        for (let shape of annotation.shapes) {
+          // find the tool that drew this shape
+          let tool = this.tools.find(tool => {
+            return tool.name === shape.kind
+          })
+          if (tool.hitTest(tool.scaleGeometry(shape.geometry, this._pixelRatio()), pt)) {
+            found = true
+          }
+        }
+      }
+      if (this.callbacks.mouseOverAnnotation) {
+        this.callbacks.mouseOverAnnotation(found)
+      }
+    }
   }
 
   _mouseLeave(e) {
@@ -465,19 +522,26 @@ class Flast {
   _keyUp(e) {
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
-      if (this.callbacks.didCancelDrawingShape) {
-        this.callbacks.didCancelDrawingShape(this._currentShape)
-      }
-      this._state.drawing = false
-      this._currentShape = null
-      this.redraw()
-    } else {
+      this.cancelShape()
+      e.preventDefault()
+      e.stopPropagation()
+      return true
+    } else if (e.which === 13 && this._currentAnnotation) {
+      this.completeAnnotation()
+    } else if (this._state.enabled) {
       for (let tool of this.tools) {
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name
+          if (this.callbacks.didSelectTool) {
+            this.callbacks.didSelectTool(this._state.tool)
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          return true
         }
       }
     }
+    return true
   }
 
   // transform the point from page space to canvas space
@@ -680,7 +744,7 @@ class Flast {
         ctx.stroke()
 
         let radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x))
-        radians += ((p2.x > p1.x ? 90 : -90) * Math.PI) / 180
+        radians += ((p1.x <= p2.x ? 90 : -90) * Math.PI) / 180
 
         ctx.save()
         ctx.beginPath()

@@ -10,11 +10,13 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   }DP$0(Flast,"prototype",{"configurable":false,"enumerable":false,"writable":false});
 
   proto$0.reinit = function(options) {
-    this._init(options)
+    var merged = Object.assign(this.originalOptions, options)
+    this._init(merged)
     this.redraw()
   };
 
   proto$0._init = function(options) {
+    this.originalOptions = options
     this.maxZoom = options.maxZoom || 4
     this.zoomSpeed = options.zoomSpeed || 1.01
     this.getTileUrl =
@@ -28,11 +30,13 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._currentAnnotation = null
     this._currentShape = null
     this._maxScale = options.maxScale || 2
+    this._authorColor = options.authorColor
     this._state = {
       mouse: 'up', // 'down'
       tool: 'none', // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
       dragging: false,
       drawing: false,
+      enabled: true,
     }
     this._contentSize = {
       width: options.width || 624 * Math.pow(2, this.maxZoom),
@@ -83,10 +87,17 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     })
     if (tool) {
       this._state.tool = toolName
+      if (this.callbacks.didSelectTool) {
+        this.callbacks.didSelectTool(this._state.tool)
+      }
       this.redraw()
     } else {
       console.error('Flask: That tool is not defined.')
     }
+  };
+
+  proto$0.setEnabled = function(enabled) {
+    this._state.enabled = enabled
   };
 
   proto$0.setTileSize = function(size) {
@@ -188,8 +199,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
         // set how shape should look by default
         // (can be overriden in drawInContext)
-        $that$0._ctx.fillStyle = annotation.color || '#FF0000'
-        $that$0._ctx.strokeStyle = annotation.color || '#FF0000'
+        $that$0._ctx.fillStyle = annotation.color || $that$0._authorColor || '#FF0000'
+        $that$0._ctx.strokeStyle = annotation.color || $that$0._authorColor || '#FF0000'
         $that$0._ctx.lineWidth = _lineWidth
 
         tool.drawInContext($that$0._ctx, tool.scaleGeometry(shape.geometry, $that$0._pixelRatio()))
@@ -220,15 +231,18 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
   proto$0.completeAnnotation = function() {
     if (this._currentAnnotation) {
-      if (this.annotations.indexOf(this._currentAnnotation) === -1) {
-        this.annotations.push(this._currentAnnotation)
-      }
+      // if (this.annotations.indexOf(this._currentAnnotation) === -1) {
+      //   this.annotations.push(this._currentAnnotation)
+      // }
       if (this.callbacks.didFinishAnnotation) {
         this.callbacks.didFinishAnnotation(this._currentAnnotation)
       }
     }
-    this._currentAnnotation = null
+    // this._currentAnnotation = null
     this._state.tool = 'none'
+    if (this.callbacks.didSelectTool) {
+      this.callbacks.didSelectTool(null)
+    }
     this.redraw()
   };
 
@@ -240,11 +254,28 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
     this._currentAnnotation = null
     this._state.tool = 'none'
+    if (this.callbacks.didSelectTool) {
+      this.callbacks.didSelectTool(null)
+    }
+    this.redraw()
+  };
+
+  proto$0.cancelShape = function() {
+    if (this._currentShape) {
+      if (this.callbacks.didCancelDrawingShape) {
+        this.callbacks.didCancelDrawingShape(this._currentShape)
+      }
+    }
+    this._state.drawing = false
+    this._currentShape = null
     this.redraw()
   };
 
   proto$0.selectAnnotation = function(annotation) {
     this._currentAnnotation = annotation
+    if (this.callbacks.didSelectAnnotation) {
+      this.callbacks.didSelectAnnotation(annotation)
+    }
     this.redraw()
   };
 
@@ -286,6 +317,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     // this._transform.e += width / 2.0 - (rect.width * scale) / 2.0
     // this._transform.f += height / 2.0 - (rect.height * scale) / 2.0
 
+    this._clampToBounds()
     this._updateTransform()
   };
 
@@ -349,21 +381,26 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0._mouseDown = function(e) {
+    console.log('mouse down')
     this._state.mouse = 'down'
     document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none'
     this._dragStart = this._eventPoint(e)
   };
 
   proto$0._mouseUp = function(e) {var $D$11;var $D$12;var $D$13;var $D$14;var $D$15;var $D$16;var $D$17;var $D$18;;var $that$0=this;
+    console.log('mouse up')
+    console.log(this._state)
     this._state.mouse = 'up'
 
     // stop dragging
     if (this._state.dragging) {
+      console.log('stop dragging')
       this._state.dragging = false
     }
 
     // start drawing
-    else if (!this._state.drawing && this._state.tool !== 'none') {
+    else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
+      console.log('start dragging')
       this._state.drawing = true
       var pt = this._eventPoint(e)
       var tool = this._currentTool()
@@ -381,6 +418,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     // stop drawing
     else if (this._state.drawing) {
+      console.log('stop dragging')
       this._state.drawing = false
       // if there is not a current annotation
       if (!this._currentAnnotation) {
@@ -408,7 +446,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
 
     // if nothing already selected
-    else if (!this._currentAnnotation) {
+    else if (this._state.enabled) {
+      console.log('try select annotation')
       // if mouse up over a shape
       var pt$0 = this._eventPoint(e)
       $D$14 = (this.annotations);$D$11 = GET_ITER$0($D$14);$D$13 = $D$11 === 0;$D$12 = ($D$13 ? $D$14.length : void 0);for (var annotation ;$D$13 ? ($D$11 < $D$12) : !($D$12 = $D$11["next"]())["done"];){annotation = ($D$13 ? $D$14[$D$11++] : $D$12["value"]);
@@ -429,12 +468,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
   };
 
-  proto$0._mouseMove = function(e) {
+  proto$0._mouseMove = function(e) {var $D$19;var $D$20;var $D$21;var $D$22;var $D$23;var $D$24;var $D$25;var $D$26;;var $that$0=this;
     var pt = this._eventPoint(e)
     if (this._state.mouse === 'down' && !this._state.dragging) {
       var distance = Flast._distance(pt, this._dragStart)
       // have to move a threshold distance to be counted as dragging
-      if (distance > 5) {
+      if (distance > 10) {
         this._state.dragging = true
       }
     }
@@ -453,6 +492,24 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       })
       this.redraw()
     }
+    if (this._state.mouse === 'up' && !this._state.drawing && this._state.enabled) {
+      var pt$1 = this._eventPoint(e)
+      var found = false
+      $D$22 = (this.annotations);$D$19 = GET_ITER$0($D$22);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? $D$22.length : void 0);for (var annotation ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){annotation = ($D$21 ? $D$22[$D$19++] : $D$20["value"]);
+        $D$26 = (annotation.shapes);$D$23 = GET_ITER$0($D$26);$D$25 = $D$23 === 0;$D$24 = ($D$25 ? $D$26.length : void 0);for (var shape ;$D$25 ? ($D$23 < $D$24) : !($D$24 = $D$23["next"]())["done"];){shape = ($D$25 ? $D$26[$D$23++] : $D$24["value"]);(function(shape){
+          // find the tool that drew this shape
+          var tool = $that$0.tools.find(function(tool ) {
+            return tool.name === shape.kind
+          })
+          if (tool.hitTest(tool.scaleGeometry(shape.geometry, $that$0._pixelRatio()), pt$1)) {
+            found = true
+          }
+        })(shape);};$D$23 = $D$24 = $D$25 = $D$26 = void 0;
+      };$D$19 = $D$20 = $D$21 = $D$22 = void 0;
+      if (this.callbacks.mouseOverAnnotation) {
+        this.callbacks.mouseOverAnnotation(found)
+      }
+    }
   };
 
   proto$0._mouseLeave = function(e) {
@@ -462,22 +519,29 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
   };
 
-  proto$0._keyUp = function(e) {var $D$19;var $D$20;var $D$21;var $D$22;
+  proto$0._keyUp = function(e) {var $D$27;var $D$28;var $D$29;var $D$30;
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
-      if (this.callbacks.didCancelDrawingShape) {
-        this.callbacks.didCancelDrawingShape(this._currentShape)
-      }
-      this._state.drawing = false
-      this._currentShape = null
-      this.redraw()
-    } else {
-      $D$22 = (this.tools);$D$19 = GET_ITER$0($D$22);$D$21 = $D$19 === 0;$D$20 = ($D$21 ? $D$22.length : void 0);for (var tool ;$D$21 ? ($D$19 < $D$20) : !($D$20 = $D$19["next"]())["done"];){tool = ($D$21 ? $D$22[$D$19++] : $D$20["value"]);
+      this.cancelShape()
+      e.preventDefault()
+      e.stopPropagation()
+      return true
+    } else if (e.which === 13 && this._currentAnnotation) {
+      this.completeAnnotation()
+    } else if (this._state.enabled) {
+      $D$30 = (this.tools);$D$27 = GET_ITER$0($D$30);$D$29 = $D$27 === 0;$D$28 = ($D$29 ? $D$30.length : void 0);for (var tool ;$D$29 ? ($D$27 < $D$28) : !($D$28 = $D$27["next"]())["done"];){tool = ($D$29 ? $D$30[$D$27++] : $D$28["value"]);
         if (e.which === tool.keyCode) {
           this._state.tool = tool.name
+          if (this.callbacks.didSelectTool) {
+            this.callbacks.didSelectTool(this._state.tool)
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          return true
         }
-      };$D$19 = $D$20 = $D$21 = $D$22 = void 0;
+      };$D$27 = $D$28 = $D$29 = $D$30 = void 0;
     }
+    return true
   };
 
   // transform the point from page space to canvas space
@@ -680,7 +744,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.stroke()
 
         var radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x))
-        radians += ((p2.x > p1.x ? 90 : -90) * Math.PI) / 180
+        radians += ((p1.x <= p2.x ? 90 : -90) * Math.PI) / 180
 
         ctx.save()
         ctx.beginPath()
@@ -791,16 +855,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.strokeRect(g.x, g.y, g.width, g.height)
         ctx.stroke()
       },
-      hitTest: function(geometry, pt) {var $D$23;var $D$24;var $D$25;
+      hitTest: function(geometry, pt) {var $D$31;var $D$32;var $D$33;
         var distances = [
           Math.abs(geometry.x - pt.x),
           Math.abs(geometry.x + geometry.width - pt.x),
           Math.abs(geometry.y - pt.y),
           Math.abs(geometry.y + geometry.height - pt.y),
         ]
-        $D$23 = GET_ITER$0(distances);$D$25 = $D$23 === 0;$D$24 = ($D$25 ? distances.length : void 0);for (var dist ;$D$25 ? ($D$23 < $D$24) : !($D$24 = $D$23["next"]())["done"];){dist = ($D$25 ? distances[$D$23++] : $D$24["value"]);
+        $D$31 = GET_ITER$0(distances);$D$33 = $D$31 === 0;$D$32 = ($D$33 ? distances.length : void 0);for (var dist ;$D$33 ? ($D$31 < $D$32) : !($D$32 = $D$31["next"]())["done"];){dist = ($D$33 ? distances[$D$31++] : $D$32["value"]);
           if (dist < _hitMargin) return true
-        };$D$23 = $D$24 = $D$25 = void 0;
+        };$D$31 = $D$32 = $D$33 = void 0;
       },
       scaleGeometry: function(geometry, factor) {
         return {
