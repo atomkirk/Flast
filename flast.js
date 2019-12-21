@@ -520,6 +520,10 @@ class Flast {
   }
 
   _keyUp(e) {
+    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+      return true
+    }
+
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this.cancelShape()

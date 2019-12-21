@@ -520,6 +520,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0._keyUp = function(e) {var $D$27;var $D$28;var $D$29;var $D$30;
+    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+      return true
+    }
+
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this.cancelShape()
