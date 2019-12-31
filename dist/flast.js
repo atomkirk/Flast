@@ -52,7 +52,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._applyTransform(this._transform)
   };
 
-  proto$0._once = function(canvas) {var this$0 = this;
+  proto$0._once = function(canvas) {
     this.canvasWidth = canvas.clientWidth
     this.canvasHeight = canvas.clientHeight
     var context = canvas.getContext('2d')
@@ -62,18 +62,19 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._transform = this._svg.createSVGMatrix()
     this._addEventListeners()
     this._configureCanvas()
-    window.onresize = function(event ) {
-      var transform = this$0._transform
-      this$0.canvasWidth = canvas.clientWidth
-      this$0.canvasHeight = canvas.clientHeight
-      this$0._transform.e = this$0._transform.f = 0
-      this$0._transform.a = this$0._transform.d = this$0._minScale
-      this$0.setTileSize(this$0.tileSize)
-      this$0._configureCanvas()
-      this$0._clampToBounds()
-      this$0._applyTransform(transform)
-      this$0.redraw()
-    }
+  };
+
+  proto$0.resize = function() {
+    var canvas = this._canvas
+    this.canvasWidth = canvas.clientWidth
+    this.canvasHeight = canvas.clientHeight
+    this._transform.e = this._transform.f = 0
+    this._transform.a = this._transform.d = this._minScale
+    this.setTileSize(this.tileSize)
+    this._configureCanvas()
+    this._clampToBounds()
+    this._applyTransform(this._transform)
+    this.redraw()
   };
 
   proto$0._pixelRatio = function() {

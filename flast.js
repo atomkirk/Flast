@@ -62,18 +62,19 @@ class Flast {
     this._transform = this._svg.createSVGMatrix()
     this._addEventListeners()
     this._configureCanvas()
-    window.onresize = event => {
-      let transform = this._transform
-      this.canvasWidth = canvas.clientWidth
-      this.canvasHeight = canvas.clientHeight
-      this._transform.e = this._transform.f = 0
-      this._transform.a = this._transform.d = this._minScale
-      this.setTileSize(this.tileSize)
-      this._configureCanvas()
-      this._clampToBounds()
-      this._applyTransform(transform)
-      this.redraw()
-    }
+  }
+
+  resize() {
+    let canvas = this._canvas
+    this.canvasWidth = canvas.clientWidth
+    this.canvasHeight = canvas.clientHeight
+    this._transform.e = this._transform.f = 0
+    this._transform.a = this._transform.d = this._minScale
+    this.setTileSize(this.tileSize)
+    this._configureCanvas()
+    this._clampToBounds()
+    this._applyTransform(this._transform)
+    this.redraw()
   }
 
   _pixelRatio() {
