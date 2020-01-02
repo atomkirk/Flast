@@ -738,22 +738,22 @@ class Flast {
         let arrowHeight = _lineWidth * 6
 
         ctx.beginPath()
-        ctx.moveTo(p1.x, p1.y)
+        ctx.moveTo(p2.x, p2.y)
         let vector = {
-          dx: p2.x - p1.x,
-          dy: p2.y - p1.y,
+          dx: p1.x - p2.x,
+          dy: p1.y - p2.y,
         }
         let length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2))
         let percent = (length - arrowHeight) / length
-        ctx.lineTo(p1.x + vector.dx * percent, p1.y + vector.dy * percent)
+        ctx.lineTo(p2.x + vector.dx * percent, p2.y + vector.dy * percent)
         ctx.stroke()
 
-        let radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x))
-        radians += ((p1.x <= p2.x ? 90 : -90) * Math.PI) / 180
+        let radians = Math.atan((p1.y - p2.y) / (p1.x - p2.x))
+        radians += ((p2.x <= p1.x ? 90 : -90) * Math.PI) / 180
 
         ctx.save()
         ctx.beginPath()
-        ctx.translate(p2.x, p2.y)
+        ctx.translate(p1.x, p1.y)
         ctx.rotate(radians)
         ctx.moveTo(0, 0)
         ctx.lineTo(_lineWidth * 3, arrowHeight)
