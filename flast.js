@@ -382,26 +382,21 @@ class Flast {
   }
 
   _mouseDown(e) {
-    console.log('mouse down')
     this._state.mouse = 'down'
     document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none'
     this._dragStart = this._eventPoint(e)
   }
 
   _mouseUp(e) {
-    console.log('mouse up')
-    console.log(this._state)
     this._state.mouse = 'up'
 
     // stop dragging
     if (this._state.dragging) {
-      console.log('stop dragging')
       this._state.dragging = false
     }
 
     // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
-      console.log('start dragging')
       this._state.drawing = true
       let pt = this._eventPoint(e)
       let tool = this._currentTool()
@@ -419,7 +414,6 @@ class Flast {
 
     // stop drawing
     else if (this._state.drawing) {
-      console.log('stop dragging')
       this._state.drawing = false
       // if there is not a current annotation
       if (!this._currentAnnotation) {
@@ -448,7 +442,6 @@ class Flast {
 
     // if nothing already selected
     else if (this._state.enabled) {
-      console.log('try select annotation')
       // if mouse up over a shape
       let pt = this._eventPoint(e)
       for (let annotation of this.annotations) {
@@ -474,7 +467,7 @@ class Flast {
     if (this._state.mouse === 'down' && !this._state.dragging) {
       let distance = Flast._distance(pt, this._dragStart)
       // have to move a threshold distance to be counted as dragging
-      if (distance > 10) {
+      if (distance > 10 / this._transform.a) {
         this._state.dragging = true
       }
     }

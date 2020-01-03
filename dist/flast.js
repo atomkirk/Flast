@@ -382,26 +382,21 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0._mouseDown = function(e) {
-    console.log('mouse down')
     this._state.mouse = 'down'
     document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none'
     this._dragStart = this._eventPoint(e)
   };
 
   proto$0._mouseUp = function(e) {var $D$11;var $D$12;var $D$13;var $D$14;var $D$15;var $D$16;var $D$17;var $D$18;;var $that$0=this;
-    console.log('mouse up')
-    console.log(this._state)
     this._state.mouse = 'up'
 
     // stop dragging
     if (this._state.dragging) {
-      console.log('stop dragging')
       this._state.dragging = false
     }
 
     // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
-      console.log('start dragging')
       this._state.drawing = true
       var pt = this._eventPoint(e)
       var tool = this._currentTool()
@@ -419,7 +414,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     // stop drawing
     else if (this._state.drawing) {
-      console.log('stop dragging')
       this._state.drawing = false
       // if there is not a current annotation
       if (!this._currentAnnotation) {
@@ -448,7 +442,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
 
     // if nothing already selected
     else if (this._state.enabled) {
-      console.log('try select annotation')
       // if mouse up over a shape
       var pt$0 = this._eventPoint(e)
       $D$14 = (this.annotations);$D$11 = GET_ITER$0($D$14);$D$13 = $D$11 === 0;$D$12 = ($D$13 ? $D$14.length : void 0);for (var annotation ;$D$13 ? ($D$11 < $D$12) : !($D$12 = $D$11["next"]())["done"];){annotation = ($D$13 ? $D$14[$D$11++] : $D$12["value"]);
@@ -474,7 +467,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     if (this._state.mouse === 'down' && !this._state.dragging) {
       var distance = Flast._distance(pt, this._dragStart)
       // have to move a threshold distance to be counted as dragging
-      if (distance > 10) {
+      if (distance > 10 / this._transform.a) {
         this._state.dragging = true
       }
     }
