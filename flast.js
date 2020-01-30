@@ -393,6 +393,9 @@ class Flast {
     // stop dragging
     if (this._state.dragging) {
       this._state.dragging = false
+      if (this.callbacks.didEndDragging) {
+        this.callbacks.didEndDragging()
+      }
     }
 
     // start drawing
@@ -469,6 +472,9 @@ class Flast {
       // have to move a threshold distance to be counted as dragging
       if (distance > 10 / this._transform.a) {
         this._state.dragging = true
+        if (this.callbacks.didBeginDragging) {
+          this.callbacks.didBeginDragging()
+        }
       }
     }
     if (this._state.dragging) {
@@ -854,15 +860,21 @@ class Flast {
         ctx.stroke()
       },
       hitTest(geometry, pt) {
+        let bounding = [
+          pt.x > geometry.x - _hitMargin,
+          pt.x < geometry.x + geometry.width + _hitMargin,
+          pt.y > geometry.y - _hitMargin,
+          pt.y < geometry.y + geometry.height + _hitMargin,
+        ]
+
         let distances = [
           Math.abs(geometry.x - pt.x),
           Math.abs(geometry.x + geometry.width - pt.x),
           Math.abs(geometry.y - pt.y),
           Math.abs(geometry.y + geometry.height - pt.y),
         ]
-        for (let dist of distances) {
-          if (dist < _hitMargin) return true
-        }
+
+        return bounding.every(b => b) && Math.min.apply(null, distances) < _hitMargin
       },
       scaleGeometry(geometry, factor) {
         return {

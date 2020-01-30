@@ -138,6 +138,15 @@
                     radius: 200,
                   },
                 },
+                {
+                  kind: 'rectangle',
+                  geometry: {
+                    x: 2000,
+                    y: 2000,
+                    width: 1000,
+                    height: 1500,
+                  }
+                }
               ],
             },
           ],
@@ -164,6 +173,9 @@
             },
             didUpdateTransform: function(transform) {
               // console.log(transform);
+            },
+            mouseOverAnnotation: over => {
+              document.body.style.cursor = over ? 'pointer' : 'default'
             },
           },
         })

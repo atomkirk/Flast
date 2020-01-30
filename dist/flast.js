@@ -393,6 +393,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     // stop dragging
     if (this._state.dragging) {
       this._state.dragging = false
+      if (this.callbacks.didEndDragging) {
+        this.callbacks.didEndDragging()
+      }
     }
 
     // start drawing
@@ -469,6 +472,9 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       // have to move a threshold distance to be counted as dragging
       if (distance > 10 / this._transform.a) {
         this._state.dragging = true
+        if (this.callbacks.didBeginDragging) {
+          this.callbacks.didBeginDragging()
+        }
       }
     }
     if (this._state.dragging) {
@@ -853,16 +859,22 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
         ctx.strokeRect(g.x, g.y, g.width, g.height)
         ctx.stroke()
       },
-      hitTest: function(geometry, pt) {var $D$31;var $D$32;var $D$33;
+      hitTest: function(geometry, pt) {
+        var bounding = [
+          pt.x > geometry.x - _hitMargin,
+          pt.x < geometry.x + geometry.width + _hitMargin,
+          pt.y > geometry.y - _hitMargin,
+          pt.y < geometry.y + geometry.height + _hitMargin,
+        ]
+
         var distances = [
           Math.abs(geometry.x - pt.x),
           Math.abs(geometry.x + geometry.width - pt.x),
           Math.abs(geometry.y - pt.y),
           Math.abs(geometry.y + geometry.height - pt.y),
         ]
-        $D$31 = GET_ITER$0(distances);$D$33 = $D$31 === 0;$D$32 = ($D$33 ? distances.length : void 0);for (var dist ;$D$33 ? ($D$31 < $D$32) : !($D$32 = $D$31["next"]())["done"];){dist = ($D$33 ? distances[$D$31++] : $D$32["value"]);
-          if (dist < _hitMargin) return true
-        };$D$31 = $D$32 = $D$33 = void 0;
+
+        return bounding.every(function(b ) {return b}) && Math.min.apply(null, distances) < _hitMargin
       },
       scaleGeometry: function(geometry, factor) {
         return {
