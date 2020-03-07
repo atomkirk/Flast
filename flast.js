@@ -524,6 +524,10 @@ class Flast {
       return true
     }
 
+    if (!this._state.enabled) {
+      return false
+    }
+
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this.cancelShape()

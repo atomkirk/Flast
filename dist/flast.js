@@ -524,6 +524,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       return true
     }
 
+    if (!this._state.enabled) {
+      return false
+    }
+
     // cancel drawing
     if (this._state.drawing && e.which === 27) {
       this.cancelShape()
