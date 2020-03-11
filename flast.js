@@ -15,6 +15,10 @@ class Flast {
     this.redraw()
   }
 
+  destroy() {
+    window.removeEventListener('keyup', this._keyUpHandler)
+  }
+
   _init(options) {
     this.originalOptions = options
     this.maxZoom = options.maxZoom || 4
@@ -27,7 +31,8 @@ class Flast {
     this.tools = options.tools || [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE]
     this.annotations = options.annotations || []
     this.callbacks = options.callbacks || {}
-    this._currentAnnotation = null
+    this._selectedAnnotation = null
+    this._drawingAnnotation = null
     this._currentShape = null
     this._maxScale = options.maxScale || 2
     this._authorColor = options.authorColor
@@ -176,15 +181,18 @@ class Flast {
     }
 
     // draw in-progress annotation/shapes
-    let currentAnnotation = this._currentAnnotation || { shapes: [] }
+    let currentAnnotation = this._drawingAnnotation || { shapes: [] }
 
     // draw all annotations
     for (let annotation of this.annotations.concat(currentAnnotation)) {
       // when drawing, fade out all other shapes except the current annotation
-      if (!this._currentAnnotation || annotation === this._currentAnnotation) {
-        this._ctx.globalAlpha = 1.0
-      } else {
+      if (
+        (this._selectedAnnotation && !this.callbacks.compareAnnotations(annotation, this._selectedAnnotation)) ||
+        (this._drawingAnnotation && !this.callbacks.compareAnnotations(annotation, this._drawingAnnotation))
+      ) {
         this._ctx.globalAlpha = 0.2
+      } else {
+        this._ctx.globalAlpha = 1.0
       }
       // draw in-progress shapes
       let shapes = annotation.shapes
@@ -231,15 +239,12 @@ class Flast {
   }
 
   completeAnnotation() {
-    if (this._currentAnnotation) {
-      // if (this.annotations.indexOf(this._currentAnnotation) === -1) {
-      //   this.annotations.push(this._currentAnnotation)
-      // }
+    if (this._drawingAnnotation) {
       if (this.callbacks.didFinishAnnotation) {
-        this.callbacks.didFinishAnnotation(this._currentAnnotation)
+        this.callbacks.didFinishAnnotation(this._drawingAnnotation)
       }
     }
-    // this._currentAnnotation = null
+    this._drawingAnnotation = null
     this._state.tool = 'none'
     if (this.callbacks.didSelectTool) {
       this.callbacks.didSelectTool(null)
@@ -248,16 +253,16 @@ class Flast {
   }
 
   cancelAnnotation() {
-    if (this._currentAnnotation) {
+    if (this._drawingAnnotation) {
       if (this.callbacks.didCancelAnnotation) {
-        this.callbacks.didCancelAnnotation(this._currentAnnotation)
+        this.callbacks.didCancelAnnotation(this._drawingAnnotation)
       }
     }
-    this._currentAnnotation = null
-    this._state.tool = 'none'
-    if (this.callbacks.didSelectTool) {
+    this._drawingAnnotation = null
+    if (this.callbacks.didSelectTool && this._state.tool !== 'none') {
       this.callbacks.didSelectTool(null)
     }
+    this._state.tool = 'none'
     this.redraw()
   }
 
@@ -273,7 +278,7 @@ class Flast {
   }
 
   selectAnnotation(annotation) {
-    this._currentAnnotation = annotation
+    this._selectedAnnotation = annotation
     if (this.callbacks.didSelectAnnotation) {
       this.callbacks.didSelectAnnotation(annotation)
     }
@@ -335,7 +340,8 @@ class Flast {
     this._canvas.addEventListener('mouseup', this._mouseUp.bind(this), false)
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false)
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false)
-    window.addEventListener('keyup', this._keyUp.bind(this), false)
+    this._keyUpHandler = this._keyUp.bind(this)
+    window.addEventListener('keyup', this._keyUpHandler, false)
   }
 
   _configureCanvas() {
@@ -419,12 +425,12 @@ class Flast {
     else if (this._state.drawing) {
       this._state.drawing = false
       // if there is not a current annotation
-      if (!this._currentAnnotation) {
+      if (!this._drawingAnnotation) {
         // start new annotation
-        this._currentAnnotation = { shapes: [] }
+        this._drawingAnnotation = { shapes: [] }
         // callback
         if (this.callbacks.didStartAnnotation) {
-          this.callbacks.didStartAnnotation(this._currentAnnotation)
+          this.callbacks.didStartAnnotation(this._drawingAnnotation)
         }
       }
       // finalize drawing if tool provides it
@@ -434,7 +440,7 @@ class Flast {
       }
 
       // add shape to current annotation
-      this._currentAnnotation.shapes.push(this._currentShape)
+      this._drawingAnnotation.shapes.push(this._currentShape)
       // callback
       if (this.callbacks.didFinishDrawingShape) {
         this.callbacks.didFinishDrawingShape(this._currentShape)
@@ -454,7 +460,6 @@ class Flast {
             return tool.name === shape.kind
           })
           if (tool.hitTest(tool.scaleGeometry(shape.geometry, this._pixelRatio()), pt)) {
-            this.selectAnnotation(annotation)
             if (this.callbacks.didSelectAnnotation) {
               this.callbacks.didSelectAnnotation(annotation)
             }
@@ -534,7 +539,7 @@ class Flast {
       e.preventDefault()
       e.stopPropagation()
       return true
-    } else if (e.which === 13 && this._currentAnnotation) {
+    } else if (e.which === 13 && this._drawingAnnotation) {
       this.completeAnnotation()
     } else if (this._state.enabled) {
       for (let tool of this.tools) {

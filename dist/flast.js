@@ -15,6 +15,10 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this.redraw()
   };
 
+  proto$0.destroy = function() {
+    window.removeEventListener('keyup', this._keyUpHandler)
+  };
+
   proto$0._init = function(options) {
     this.originalOptions = options
     this.maxZoom = options.maxZoom || 4
@@ -27,7 +31,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this.tools = options.tools || [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE]
     this.annotations = options.annotations || []
     this.callbacks = options.callbacks || {}
-    this._currentAnnotation = null
+    this._selectedAnnotation = null
+    this._drawingAnnotation = null
     this._currentShape = null
     this._maxScale = options.maxScale || 2
     this._authorColor = options.authorColor
@@ -176,15 +181,18 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     }
 
     // draw in-progress annotation/shapes
-    var currentAnnotation = this._currentAnnotation || { shapes: [] }
+    var currentAnnotation = this._drawingAnnotation || { shapes: [] }
 
     // draw all annotations
     $D$3 = (this.annotations.concat(currentAnnotation));$D$0 = GET_ITER$0($D$3);$D$2 = $D$0 === 0;$D$1 = ($D$2 ? $D$3.length : void 0);for (var annotation ;$D$2 ? ($D$0 < $D$1) : !($D$1 = $D$0["next"]())["done"];){annotation = ($D$2 ? $D$3[$D$0++] : $D$1["value"]);
       // when drawing, fade out all other shapes except the current annotation
-      if (!this._currentAnnotation || annotation === this._currentAnnotation) {
-        this._ctx.globalAlpha = 1.0
-      } else {
+      if (
+        (this._selectedAnnotation && !this.callbacks.compareAnnotations(annotation, this._selectedAnnotation)) ||
+        (this._drawingAnnotation && !this.callbacks.compareAnnotations(annotation, this._drawingAnnotation))
+      ) {
         this._ctx.globalAlpha = 0.2
+      } else {
+        this._ctx.globalAlpha = 1.0
       }
       // draw in-progress shapes
       var shapes = annotation.shapes
@@ -231,15 +239,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0.completeAnnotation = function() {
-    if (this._currentAnnotation) {
-      // if (this.annotations.indexOf(this._currentAnnotation) === -1) {
-      //   this.annotations.push(this._currentAnnotation)
-      // }
+    if (this._drawingAnnotation) {
       if (this.callbacks.didFinishAnnotation) {
-        this.callbacks.didFinishAnnotation(this._currentAnnotation)
+        this.callbacks.didFinishAnnotation(this._drawingAnnotation)
       }
     }
-    // this._currentAnnotation = null
+    this._drawingAnnotation = null
     this._state.tool = 'none'
     if (this.callbacks.didSelectTool) {
       this.callbacks.didSelectTool(null)
@@ -248,16 +253,16 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0.cancelAnnotation = function() {
-    if (this._currentAnnotation) {
+    if (this._drawingAnnotation) {
       if (this.callbacks.didCancelAnnotation) {
-        this.callbacks.didCancelAnnotation(this._currentAnnotation)
+        this.callbacks.didCancelAnnotation(this._drawingAnnotation)
       }
     }
-    this._currentAnnotation = null
-    this._state.tool = 'none'
-    if (this.callbacks.didSelectTool) {
+    this._drawingAnnotation = null
+    if (this.callbacks.didSelectTool && this._state.tool !== 'none') {
       this.callbacks.didSelectTool(null)
     }
+    this._state.tool = 'none'
     this.redraw()
   };
 
@@ -273,7 +278,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
   };
 
   proto$0.selectAnnotation = function(annotation) {
-    this._currentAnnotation = annotation
+    this._selectedAnnotation = annotation
     if (this.callbacks.didSelectAnnotation) {
       this.callbacks.didSelectAnnotation(annotation)
     }
@@ -335,7 +340,8 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this._canvas.addEventListener('mouseup', this._mouseUp.bind(this), false)
     this._canvas.addEventListener('DOMMouseScroll', this._updateZoom.bind(this), false)
     this._canvas.addEventListener('mousewheel', this._updateZoom.bind(this), false)
-    window.addEventListener('keyup', this._keyUp.bind(this), false)
+    this._keyUpHandler = this._keyUp.bind(this)
+    window.addEventListener('keyup', this._keyUpHandler, false)
   };
 
   proto$0._configureCanvas = function() {
@@ -419,12 +425,12 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     else if (this._state.drawing) {
       this._state.drawing = false
       // if there is not a current annotation
-      if (!this._currentAnnotation) {
+      if (!this._drawingAnnotation) {
         // start new annotation
-        this._currentAnnotation = { shapes: [] }
+        this._drawingAnnotation = { shapes: [] }
         // callback
         if (this.callbacks.didStartAnnotation) {
-          this.callbacks.didStartAnnotation(this._currentAnnotation)
+          this.callbacks.didStartAnnotation(this._drawingAnnotation)
         }
       }
       // finalize drawing if tool provides it
@@ -434,7 +440,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       }
 
       // add shape to current annotation
-      this._currentAnnotation.shapes.push(this._currentShape)
+      this._drawingAnnotation.shapes.push(this._currentShape)
       // callback
       if (this.callbacks.didFinishDrawingShape) {
         this.callbacks.didFinishDrawingShape(this._currentShape)
@@ -454,7 +460,6 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
             return tool.name === shape.kind
           })
           if (tool.hitTest(tool.scaleGeometry(shape.geometry, $that$0._pixelRatio()), pt$0)) {
-            $that$0.selectAnnotation(annotation)
             if ($that$0.callbacks.didSelectAnnotation) {
               $that$0.callbacks.didSelectAnnotation(annotation)
             }
@@ -534,7 +539,7 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
       e.preventDefault()
       e.stopPropagation()
       return true
-    } else if (e.which === 13 && this._currentAnnotation) {
+    } else if (e.which === 13 && this._drawingAnnotation) {
       this.completeAnnotation()
     } else if (this._state.enabled) {
       $D$30 = (this.tools);$D$27 = GET_ITER$0($D$30);$D$29 = $D$27 === 0;$D$28 = ($D$29 ? $D$30.length : void 0);for (var tool ;$D$29 ? ($D$27 < $D$28) : !($D$28 = $D$27["next"]())["done"];){tool = ($D$29 ? $D$30[$D$27++] : $D$28["value"]);
