@@ -239,17 +239,19 @@ class Flast {
   }
 
   completeAnnotation() {
-    if (this._drawingAnnotation) {
-      if (this.callbacks.didFinishAnnotation) {
-        this.callbacks.didFinishAnnotation(this._drawingAnnotation)
+    let cb = () => {
+      this._drawingAnnotation = null
+      this._state.tool = 'none'
+      if (this.callbacks.didSelectTool) {
+        this.callbacks.didSelectTool(null)
       }
+      this.redraw()
     }
-    this._drawingAnnotation = null
-    this._state.tool = 'none'
-    if (this.callbacks.didSelectTool) {
-      this.callbacks.didSelectTool(null)
+    if (this._drawingAnnotation && this.callbacks.didFinishAnnotation) {
+      this.callbacks.didFinishAnnotation(this._drawingAnnotation, cb)
+    } else {
+      cb()
     }
-    this.redraw()
   }
 
   cancelAnnotation() {

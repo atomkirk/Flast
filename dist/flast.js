@@ -238,18 +238,20 @@ var Flast = (function(){"use strict";var PRS$0 = (function(o,t){o["__proto__"]={
     this.redraw()
   };
 
-  proto$0.completeAnnotation = function() {
-    if (this._drawingAnnotation) {
-      if (this.callbacks.didFinishAnnotation) {
-        this.callbacks.didFinishAnnotation(this._drawingAnnotation)
+  proto$0.completeAnnotation = function() {var this$0 = this;
+    var cb = function()  {
+      this$0._drawingAnnotation = null
+      this$0._state.tool = 'none'
+      if (this$0.callbacks.didSelectTool) {
+        this$0.callbacks.didSelectTool(null)
       }
+      this$0.redraw()
     }
-    this._drawingAnnotation = null
-    this._state.tool = 'none'
-    if (this.callbacks.didSelectTool) {
-      this.callbacks.didSelectTool(null)
+    if (this._drawingAnnotation && this.callbacks.didFinishAnnotation) {
+      this.callbacks.didFinishAnnotation(this._drawingAnnotation, cb)
+    } else {
+      cb()
     }
-    this.redraw()
   };
 
   proto$0.cancelAnnotation = function() {
