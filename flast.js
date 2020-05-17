@@ -88,6 +88,13 @@ class Flast {
   }
 
   setTool(toolName) {
+    if (!toolName) {
+      this._state.tool = 'none'
+      if (this.callbacks.didSelectTool) {
+        this.callbacks.didSelectTool(null)
+      }
+      return
+    }
     let tool = this.tools.find(tool => {
       return tool.name === toolName
     })
@@ -483,6 +490,7 @@ class Flast {
           this.callbacks.didBeginDragging()
         }
       }
+      return
     }
     if (this._state.dragging) {
       let dx = pt.x - this._dragStart.x
@@ -490,6 +498,7 @@ class Flast {
       this._transform = this._transform.translate(dx, dy)
       this._clampToBounds()
       this._updateTransform()
+      return
     }
     if (this._state.drawing) {
       let tool = this._currentTool()
@@ -656,6 +665,61 @@ class Flast {
     return {
       name: 'line',
       keyCode: 76,
+      startGeometry(pt) {
+        return {
+          p1: {
+            x: pt.x,
+            y: pt.y,
+          },
+          p2: {
+            x: pt.x,
+            y: pt.y,
+          },
+        }
+      },
+      updateGeometry(geometry, pt) {
+        geometry.p2 = {
+          x: pt.x,
+          y: pt.y,
+        }
+        return geometry
+      },
+      boundingRect(geometry) {
+        let minX = Math.min(geometry.p1.x, geometry.p2.x)
+        let maxX = Math.max(geometry.p1.x, geometry.p2.x)
+        let minY = Math.min(geometry.p1.y, geometry.p2.y)
+        let maxY = Math.max(geometry.p1.y, geometry.p2.y)
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        }
+      },
+      drawInContext(ctx, geometry) {
+        let p1 = geometry.p1
+        let p2 = geometry.p2
+        ctx.beginPath()
+        ctx.moveTo(p1.x, p1.y)
+        ctx.lineTo(p2.x, p2.y)
+        ctx.stroke()
+      },
+      hitTest(geometry, pt) {
+        return Flast._onLine(geometry, pt)
+      },
+      scaleGeometry(geometry, factor) {
+        return {
+          p1: { x: geometry.p1.x * factor, y: geometry.p1.y * factor },
+          p2: { x: geometry.p2.x * factor, y: geometry.p2.y * factor },
+        }
+      },
+    }
+  }
+
+  static get CALIBRATOR() {
+    return {
+      name: 'calibrator',
+      keyCode: 188, // comma
       startGeometry(pt) {
         return {
           p1: {
@@ -898,14 +962,69 @@ class Flast {
     }
   }
 
+  static get FREEHAND() {
+    return {
+      name: 'freehand',
+      keyCode: 82,
+      startGeometry(pt) {
+        return [[pt.x, pt.y]]
+      },
+      updateGeometry(geometry, pt) {
+        return geometry.concat([[pt.x, pt.y]])
+      },
+      boundingRect(geometry) {
+        const xs = geometry.map(([x, _y]) => x).sort()
+        const ys = geometry.map(([x_, y]) => y).sort()
+        let minX = xs[0]
+        let maxX = xs[xs.length - 1]
+        let minY = ys[0]
+        let maxY = ys[ys.length - 1]
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        }
+      },
+      drawInContext(ctx, geometry) {
+        let g = geometry
+        ctx.beginPath()
+        ctx.strokeRect(g.x, g.y, g.width, g.height)
+        ctx.stroke()
+
+        let p1 = geometry[0]
+        ctx.beginPath()
+        ctx.moveTo(p1[0], p1[1])
+        geometry.forEach(([x, y]) => {
+          ctx.lineTo(x, y)
+        })
+        ctx.stroke()
+      },
+      hitTest(geometry, pt) {
+        return geometry.some(([x, y], idx) => {
+          const [px, py] = geometry[idx - 1]
+          if (prev) {
+            const line = {
+              p1: { x, y },
+              p2: { x: px, y: py },
+            }
+            return Flast._onLine(line, pt)
+          }
+        })
+      },
+      scaleGeometry(geometry, factor) {
+        return geometry.map(([x, y]) => [x * factor, y * factor])
+      },
+    }
+  }
+
   static _onLine(line, point) {
     let distance = this._pointDistToLine(point, line)
     return distance < _hitMargin
   }
 
   static _pointDistToLine(point, line) {
-    let x = point.x
-    let y = point.y
+    const { x, y } = point
     let x1 = line.p1.x
     let y1 = line.p1.y
     let x2 = line.p2.x
