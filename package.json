@@ -5,13 +5,17 @@
   "main": "flast.js",
   "dependencies": {},
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-es6-transpiler": "^1.0.1",
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "babel-jest": "^26.0.1",
+    "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
     "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^2.0.0"
+    "gulp-uglify": "^2.0.0",
+    "jest": "^26.0.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",

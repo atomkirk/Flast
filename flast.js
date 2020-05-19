@@ -342,6 +342,20 @@ class Flast {
     this._updateTransform()
   }
 
+  getDimensions({ kind, geometry }) {
+    if (!this._state.calibration) {
+      return 'needs calibration'
+    }
+
+    let tool = this.tools.find(tool => {
+      return tool.name === kind
+    })
+
+    return tool.dimensions(geometry).map(({ key, value }) => {
+      return { key: key, value: value * this._state.calibration }
+    })
+  }
+
   _addEventListeners() {
     this._canvas.addEventListener('mousedown', this._mouseDown.bind(this), false)
     this._canvas.addEventListener('mousemove', this._mouseMove.bind(this), false)
@@ -454,6 +468,20 @@ class Flast {
       if (this.callbacks.didFinishDrawingShape) {
         this.callbacks.didFinishDrawingShape(this._currentShape)
       }
+
+      // if we're calibrating, we don't want to keep drawing
+      if (this._state.tool === 'calibrator') {
+        let answer = Flast.parseUnits(this.callbacks.promptForCalibration())
+        if (answer) {
+          let feet = answer.value
+          let { p1, p2 } = this._currentShape.geometry
+          let pixels = Flast._distance(p2, p1)
+          console.log(feet, ' -> ', pixels)
+          this._state.calibration = feet / pixels
+        }
+        this.cancelAnnotation()
+      }
+
       this._currentShape = null
       this.redraw()
     }
@@ -510,7 +538,7 @@ class Flast {
     }
     if (this._state.mouse === 'up' && !this._state.drawing && this._state.enabled) {
       let pt = this._eventPoint(e)
-      var found = false
+      var found = {}
       for (let annotation of this.annotations) {
         for (let shape of annotation.shapes) {
           // find the tool that drew this shape
@@ -518,7 +546,11 @@ class Flast {
             return tool.name === shape.kind
           })
           if (tool.hitTest(tool.scaleGeometry(shape.geometry, this._pixelRatio()), pt)) {
-            found = true
+            found = {
+              annotation,
+              shape,
+              event: e
+            }
           }
         }
       }
@@ -697,8 +729,7 @@ class Flast {
         }
       },
       drawInContext(ctx, geometry) {
-        let p1 = geometry.p1
-        let p2 = geometry.p2
+        const { p1, p2 } = geometry
         ctx.beginPath()
         ctx.moveTo(p1.x, p1.y)
         ctx.lineTo(p2.x, p2.y)
@@ -712,6 +743,10 @@ class Flast {
           p1: { x: geometry.p1.x * factor, y: geometry.p1.y * factor },
           p2: { x: geometry.p2.x * factor, y: geometry.p2.y * factor },
         }
+      },
+      dimensions(geometry) {
+        const { p1, p2 } = geometry
+        return [{ key: 'length', value: Flast._distance(p2, p1) }]
       },
     }
   }
@@ -720,54 +755,12 @@ class Flast {
     return {
       name: 'calibrator',
       keyCode: 188, // comma
-      startGeometry(pt) {
-        return {
-          p1: {
-            x: pt.x,
-            y: pt.y,
-          },
-          p2: {
-            x: pt.x,
-            y: pt.y,
-          },
-        }
-      },
-      updateGeometry(geometry, pt) {
-        geometry.p2 = {
-          x: pt.x,
-          y: pt.y,
-        }
-        return geometry
-      },
-      boundingRect(geometry) {
-        let minX = Math.min(geometry.p1.x, geometry.p2.x)
-        let maxX = Math.max(geometry.p1.x, geometry.p2.x)
-        let minY = Math.min(geometry.p1.y, geometry.p2.y)
-        let maxY = Math.max(geometry.p1.y, geometry.p2.y)
-        return {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY,
-        }
-      },
-      drawInContext(ctx, geometry) {
-        let p1 = geometry.p1
-        let p2 = geometry.p2
-        ctx.beginPath()
-        ctx.moveTo(p1.x, p1.y)
-        ctx.lineTo(p2.x, p2.y)
-        ctx.stroke()
-      },
-      hitTest(geometry, pt) {
-        return Flast._onLine(geometry, pt)
-      },
-      scaleGeometry(geometry, factor) {
-        return {
-          p1: { x: geometry.p1.x * factor, y: geometry.p1.y * factor },
-          p2: { x: geometry.p2.x * factor, y: geometry.p2.y * factor },
-        }
-      },
+      startGeometry: Flast.LINE.startGeometry,
+      updateGeometry: Flast.LINE.updateGeometry,
+      boundingRect: Flast.LINE.boundingRect,
+      drawInContext: Flast.LINE.drawInContext,
+      hitTest: Flast.LINE.hitTest,
+      scaleGeometry: Flast.LINE.scaleGeometry,
     }
   }
 
@@ -775,37 +768,9 @@ class Flast {
     return {
       name: 'arrow',
       keyCode: 65,
-      startGeometry(pt) {
-        return {
-          p1: {
-            x: pt.x,
-            y: pt.y,
-          },
-          p2: {
-            x: pt.x,
-            y: pt.y,
-          },
-        }
-      },
-      updateGeometry(geometry, pt) {
-        geometry.p2 = {
-          x: pt.x,
-          y: pt.y,
-        }
-        return geometry
-      },
-      boundingRect(geometry) {
-        let minX = Math.min(geometry.p1.x, geometry.p2.x)
-        let maxX = Math.max(geometry.p1.x, geometry.p2.x)
-        let minY = Math.min(geometry.p1.y, geometry.p2.y)
-        let maxY = Math.max(geometry.p1.y, geometry.p2.y)
-        return {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY,
-        }
-      },
+      startGeometry: Flast.LINE.startGeometry,
+      updateGeometry: Flast.LINE.updateGeometry,
+      boundingRect: Flast.LINE.boundingRect,
       drawInContext(ctx, geometry) {
         let p1 = geometry.p1
         let p2 = geometry.p2
@@ -836,15 +801,9 @@ class Flast {
         ctx.restore()
         ctx.fill()
       },
-      hitTest(geometry, pt) {
-        return Flast._onLine(geometry, pt)
-      },
-      scaleGeometry(geometry, factor) {
-        return {
-          p1: { x: geometry.p1.x * factor, y: geometry.p1.y * factor },
-          p2: { x: geometry.p2.x * factor, y: geometry.p2.y * factor },
-        }
-      },
+      hitTest: Flast.LINE.hitTest,
+      scaleGeometry: Flast.LINE.scaleGeometry,
+      dimensions: Flast.LINE.dimensions,
     }
   }
 
@@ -888,14 +847,17 @@ class Flast {
         let distance = Flast._distance(pt, geometry.center)
         return Math.abs(distance - geometry.radius) < _hitMargin
       },
-      scaleGeometry(geometry, factor) {
+      scaleGeometry({ center, radius }, factor) {
         return {
           center: {
-            x: geometry.center.x * factor,
-            y: geometry.center.y * factor,
+            x: center.x * factor,
+            y: center.y * factor,
           },
-          radius: geometry.radius * factor,
+          radius: radius * factor,
         }
+      },
+      dimensions({ radius }) {
+        return [{ key: 'area', value: Math.PI * Math.pow(radius, 2) }]
       },
     }
   }
@@ -959,13 +921,16 @@ class Flast {
           height: geometry.height * factor,
         }
       },
+      dimensions({ width, height }) {
+        return [{ key: 'area', value: width * height }]
+      },
     }
   }
 
   static get FREEHAND() {
     return {
       name: 'freehand',
-      keyCode: 82,
+      keyCode: 102,
       startGeometry(pt) {
         return [[pt.x, pt.y]]
       },
@@ -1003,7 +968,7 @@ class Flast {
       hitTest(geometry, pt) {
         return geometry.some(([x, y], idx) => {
           const [px, py] = geometry[idx - 1]
-          if (prev) {
+          if (px) {
             const line = {
               p1: { x, y },
               p2: { x: px, y: py },
@@ -1058,5 +1023,36 @@ class Flast {
     var dx = x - xx
     var dy = y - yy
     return Math.sqrt(dx * dx + dy * dy)
+  }
+
+  static parseUnits(string) {
+    const units = [
+      { variants: ['feet', 'foot', 'ft', "'"], multiplier: 1 },
+      { variants: ['inches', 'inch', 'in', '"'], multiplier: 1.0 / 12.0 },
+      { variants: ['meters', 'meter', 'metre', 'm'], multiplier: 3.281 },
+      { variants: ['miles', 'mile', 'mi'], multiplier: 5280 },
+      { variants: ['yards', 'yard', 'y'], multiplier: 3 },
+    ]
+
+    // if its nullish, return null
+    if (!string) {
+      return null
+    }
+
+    // if its just a number, the its assumed to be feet
+    if (string.match(/^[\d.]+$/)) {
+      return { value: string * 1, units: 'feet' }
+    }
+
+    const scope = { value: 0, unit: 'feet' }
+
+    const allVariants = units.reduce((acc, { variants }) => acc.concat(variants), []).join('|')
+
+    string.replace(new RegExp(`(([\\d.]{1,})( |)(${allVariants}]))`, 'g'), (_a, _b, value, _space, unit) => {
+      const parsedUnit = units.find(n => n.variants.includes(unit))
+      scope.value += value * parsedUnit.multiplier
+    })
+
+    return { value: scope.value, units: 'feet' }
   }
 }

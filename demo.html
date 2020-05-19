@@ -67,6 +67,7 @@
         <a href="?token=0fb94435-677b-4766-9050-45cc9f83c8b8&page=2&width=19980&height=13320">Civil drawing</a>
         <a href="?token=516ef3f6-cf8a-45e3-b69f-b3768f77ce56&page=1&width=19966&height=30456">Tall DWG</a>
         <div class="scale-quantity">??</div>
+        <div class="dimensions">??</div>
       </div>
       <div class="main">
         <div class="canvas">
@@ -99,6 +100,32 @@
         return query
       }
 
+      let annotations = [
+        {
+          shapes: [
+            {
+              kind: 'circle',
+              geometry: {
+                center: {
+                  x: 500,
+                  y: 700,
+                },
+                radius: 200,
+              },
+            },
+            {
+              kind: 'rectangle',
+              geometry: {
+                x: 2000,
+                y: 2000,
+                width: 1000,
+                height: 1500,
+              },
+            },
+          ],
+        },
+      ]
+
       window.onload = () => {
         let query = parseQuery(window.location.search)
         let canvas = document.getElementsByTagName('canvas')[0]
@@ -109,67 +136,48 @@
             return `https://flast-redline-dvp-tiles.s3-us-west-2.amazonaws.com/${query.token}/page_${query.page}/zoom_${zoom}/tile_${x}x${y}.png`
           },
           tools: [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE, Flast.CALIBRATOR, Flast.FREEHAND],
-          annotations: [
-            {
-              shapes: [
-                {
-                  kind: 'circle',
-                  geometry: {
-                    center: {
-                      x: 500,
-                      y: 700,
-                    },
-                    radius: 200,
-                  },
-                },
-                {
-                  kind: 'rectangle',
-                  geometry: {
-                    x: 2000,
-                    y: 2000,
-                    width: 1000,
-                    height: 1500,
-                  },
-                },
-              ],
-            },
-          ],
+          annotations: ,
           callbacks: {
             didSelectTool: () => {},
-            didStartAnnotation: function(annotation) {
+            didStartAnnotation: annotation => {
               document.querySelector('#js-done-button').style.display = ''
             },
             didCancelAnnotation: () => {},
-            didFinishAnnotation: function(annotation, cb) {
+            didFinishAnnotation: (annotation, cb) => {
               window.lastAnnotation = annotation
               document.querySelector('#js-done-button').style.display = 'none'
               cb()
             },
-            didSelectAnnotation: function(annotation) {
+            didSelectAnnotation: annotation => {
               window.lastAnnotation = annotation
               document.querySelector('#js-done-button').style.display = ''
             },
-            didBeginDrawingShape: function(shape) {
+            didBeginDrawingShape: shape => {
               // console.log('didBeginDrawingShape');
             },
-            didCancelDrawingShape: function(shape) {
+            didCancelDrawingShape: shape => {
               // console.log('didCancelDrawingShape');
             },
-            didFinishDrawingShape: function(shape) {
-              if (shape.kind === 'calibrator') {
-                console.log(shape)
-                let quantity = prompt('How many units is that? (e.g. 10ft, 5in)')
-                window.scaleQuantity = quantity
-                $('.scale-quantity').text(quantity)
-                editor.setTool(null)
-              }
+            didFinishDrawingShape: shape => {
               // console.log('didFinishDrawingShape');
             },
-            didUpdateTransform: function(transform) {
+            promptForCalibration: () => {
+              let quantity = prompt('How many units is that? (e.g. 10ft, 5in)')
+              $('.scale-quantity').text(quantity)
+              editor.setTool(null)
+              return quantity
+            },
+            didUpdateTransform: transform => {
               // console.log(transform);
             },
-            mouseOverAnnotation: over => {
-              document.body.style.cursor = over ? 'pointer' : 'default'
+            mouseOverAnnotation: ({ shape }) => {
+              document.body.style.cursor = shape ? 'pointer' : 'default'
+              if (shape) {
+                const markup = editor.getDimensions(shape).map(({ key, value }) => {
+                  return `<div><b>${key}</b> ${value}</div>`
+                })
+                $('.dimensions').html(markup.join('<br>'))
+              }
             },
             didBeginDragging: () => {
               this._beforeDraggingCursor = canvas.style.cursor

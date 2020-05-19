@@ -1,19 +1,27 @@
-'use strict';
+'use strict'
 
-var gulp = require('gulp');
-var es6transpiler = require('gulp-es6-transpiler');
-var uglify = require('gulp-uglify');
-var rename = require('gulp-rename');
+const { src, dest, series } = require('gulp')
+var uglify = require('gulp-uglify')
+var rename = require('gulp-rename')
+let babel = require('gulp-babel')
 
-var DEST = 'dist/';
+var DEST = 'dist/'
 
-gulp.task('default', function() {
-  return gulp.src('flast.js')
-    .pipe(es6transpiler())
-    // This will output the non-minified version
-    .pipe(gulp.dest(DEST))
-    // This will minify and rename to foo.min.js
-    .pipe(uglify())
-    .pipe(rename({ extname: '.min.js' }))
-    .pipe(gulp.dest(DEST));
-});
+const buildJs = () => {
+  return (
+    src('flast.js')
+      .pipe(
+        babel({
+          presets: ['@babel/preset-env'],
+        })
+      )
+      // This will output the non-minified version
+      .pipe(dest(DEST))
+      // This will minify and rename to foo.min.js
+      .pipe(uglify())
+      .pipe(rename({ extname: '.min.js' }))
+      .pipe(dest(DEST))
+  )
+}
+
+exports.default = buildJs
