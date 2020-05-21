@@ -81,7 +81,8 @@ var Flast = /*#__PURE__*/function () {
         // 'arrow', 'line', 'circle', 'rectangle', 'freehand'
         dragging: false,
         drawing: false,
-        enabled: true
+        enabled: true,
+        calibration: options.calibration
       };
       this._contentSize = {
         width: options.width || 624 * Math.pow(2, this.maxZoom),
@@ -306,7 +307,9 @@ var Flast = /*#__PURE__*/function () {
 
 
               _this._ctx.fillStyle = annotation.color || _this._authorColor || '#FF0000';
-              _this._ctx.strokeStyle = annotation.color || _this._authorColor || '#FF0000';
+              _this._ctx.strokeStyle = annotation.color || _this._authorColor || '#FF0000'; // if we decide we want the line to stay the same width at all scales:
+              // this._ctx.lineWidth = (1 / this._transform.a) * _lineWidth
+
               _this._ctx.lineWidth = _lineWidth;
               tool.drawInContext(_this._ctx, tool.scaleGeometry(shape.geometry, _this._pixelRatio())); // tests bounding box
               // this._ctx.lineWidth = 1;
@@ -483,27 +486,42 @@ var Flast = /*#__PURE__*/function () {
       this._updateTransform();
     }
   }, {
+    key: "getTool",
+    value: function getTool(name) {
+      return this.tools.find(function (tool) {
+        return tool.name === name;
+      });
+    }
+  }, {
     key: "getDimensions",
     value: function getDimensions(_ref) {
       var _this4 = this;
 
       var kind = _ref.kind,
           geometry = _ref.geometry;
-
-      if (!this._state.calibration) {
-        return 'needs calibration';
-      }
-
       var tool = this.tools.find(function (tool) {
         return tool.name === kind;
       });
+
+      if (!this._state.calibration || !(tool && tool.dimensions)) {
+        return null;
+      }
+
       return tool.dimensions(geometry).map(function (_ref2) {
         var key = _ref2.key,
             value = _ref2.value;
-        return {
-          key: key,
-          value: value * _this4._state.calibration
-        };
+
+        if (key === 'area') {
+          return {
+            key: key,
+            value: value * Math.pow(_this4._state.calibration, 2)
+          };
+        } else {
+          return {
+            key: key,
+            value: value * _this4._state.calibration
+          };
+        }
       });
     }
   }, {
@@ -540,7 +558,7 @@ var Flast = /*#__PURE__*/function () {
       this._ctx.scale(scale, scale);
 
       _hitMargin = 60 * this._pixelRatio() * 2;
-      _lineWidth = 20 * this._pixelRatio() * 2;
+      _lineWidth = 10 * this._pixelRatio() * 2;
     }
   }, {
     key: "_updateZoom",
@@ -588,7 +606,10 @@ var Flast = /*#__PURE__*/function () {
     value: function _mouseUp(e) {
       var _this5 = this;
 
-      this._state.mouse = 'up'; // stop dragging
+      this._state.mouse = 'up';
+
+      var pt = this._eventPoint(e); // stop dragging
+
 
       if (this._state.dragging) {
         this._state.dragging = false;
@@ -599,8 +620,6 @@ var Flast = /*#__PURE__*/function () {
       } // start drawing
       else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
           this._state.drawing = true;
-
-          var pt = this._eventPoint(e);
 
           var tool = this._currentTool(); // set current shape
 
@@ -617,62 +636,81 @@ var Flast = /*#__PURE__*/function () {
           if (this.callbacks.didBeginDrawingShape) {
             this.callbacks.didBeginDrawingShape(this._currentShape);
           }
-        } // stop drawing
+        } // stop drawing / update shape
         else if (this._state.drawing) {
-            this._state.drawing = false; // if there is not a current annotation
-
-            if (!this._drawingAnnotation) {
-              // start new annotation
-              this._drawingAnnotation = {
-                shapes: []
-              }; // callback
-
-              if (this.callbacks.didStartAnnotation) {
-                this.callbacks.didStartAnnotation(this._drawingAnnotation);
-              }
-            } // finalize drawing if tool provides it
-
-
             var _tool = this._currentTool();
 
-            if (_tool.finalGeometry) {
-              this._currentShape.geometry = _tool.finalGeometry(this._currentShape.geometry);
-            } // add shape to current annotation
+            var nextPoint = {
+              x: pt.x / this._pixelRatio(),
+              y: pt.y / this._pixelRatio()
+            };
 
+            if (_tool.shouldAddSegment && _tool.shouldAddSegment(this._currentShape.geometry, nextPoint, e)) {
+              this._currentShape.geometry = _tool.addSegment(this._currentShape.geometry, nextPoint);
 
-            this._drawingAnnotation.shapes.push(this._currentShape); // callback
-
-
-            if (this.callbacks.didFinishDrawingShape) {
-              this.callbacks.didFinishDrawingShape(this._currentShape);
-            } // if we're calibrating, we don't want to keep drawing
-
-
-            if (this._state.tool === 'calibrator') {
-              var answer = Flast.parseUnits(this.callbacks.promptForCalibration());
-
-              if (answer) {
-                var feet = answer.value;
-                var _this$_currentShape$g = this._currentShape.geometry,
-                    p1 = _this$_currentShape$g.p1,
-                    p2 = _this$_currentShape$g.p2;
-
-                var pixels = Flast._distance(p2, p1);
-
-                console.log(feet, ' -> ', pixels);
-                this._state.calibration = feet / pixels;
+              if (this.callbacks.didUpdateDrawingShape) {
+                this.callbacks.didUpdateDrawingShape({
+                  shape: this._currentShape,
+                  event: e
+                });
               }
 
-              this.cancelAnnotation();
-            }
+              this.redraw();
+            } else {
+              this._state.drawing = false; // if there is not a current annotation
 
-            this._currentShape = null;
-            this.redraw();
+              if (!this._drawingAnnotation) {
+                // start new annotation
+                this._drawingAnnotation = {
+                  shapes: []
+                }; // callback
+
+                if (this.callbacks.didStartAnnotation) {
+                  this.callbacks.didStartAnnotation(this._drawingAnnotation);
+                }
+              } // finalize drawing if tool provides it
+
+
+              if (_tool.finalGeometry) {
+                this._currentShape.geometry = _tool.finalGeometry(this._currentShape.geometry);
+              } // add shape to current annotation
+
+
+              this._drawingAnnotation.shapes.push(this._currentShape); // callback
+
+
+              if (this.callbacks.didFinishDrawingShape) {
+                this.callbacks.didFinishDrawingShape(this._currentShape);
+              } // if we're calibrating, we don't want to keep drawing
+
+
+              if (this._state.tool === 'calibrator') {
+                var answer = Flast.parseUnits(this.callbacks.promptForCalibration());
+
+                if (answer) {
+                  var feet = answer.value;
+                  var _this$_currentShape$g = this._currentShape.geometry,
+                      p1 = _this$_currentShape$g.p1,
+                      p2 = _this$_currentShape$g.p2;
+
+                  var pixels = Flast._distance(p2, p1);
+
+                  this._state.calibration = feet / pixels;
+
+                  if (this.callbacks.didCalibrate) {
+                    this.callbacks.didCalibrate(this._state.calibration);
+                  }
+                }
+
+                this.cancelAnnotation();
+              }
+
+              this._currentShape = null;
+              this.redraw();
+            }
           } // if nothing already selected
           else if (this._state.enabled) {
               // if mouse up over a shape
-              var _pt = this._eventPoint(e);
-
               var _iterator4 = _createForOfIteratorHelper(this.annotations),
                   _step4;
 
@@ -692,7 +730,7 @@ var Flast = /*#__PURE__*/function () {
                         return tool.name === shape.kind;
                       });
 
-                      if (tool.hitTest(tool.scaleGeometry(shape.geometry, _this5._pixelRatio()), _pt)) {
+                      if (tool.hitTest(tool.scaleGeometry(shape.geometry, _this5._pixelRatio()), pt)) {
                         if (_this5.callbacks.didSelectAnnotation) {
                           _this5.callbacks.didSelectAnnotation(annotation);
                         }
@@ -762,6 +800,14 @@ var Flast = /*#__PURE__*/function () {
           x: pt.x / this._pixelRatio(),
           y: pt.y / this._pixelRatio()
         });
+
+        if (this.callbacks.didUpdateDrawingShape) {
+          this.callbacks.didUpdateDrawingShape({
+            shape: this._currentShape,
+            event: e
+          });
+        }
+
         this.redraw();
       }
 
@@ -888,6 +934,8 @@ var Flast = /*#__PURE__*/function () {
     key: "_applyTransform",
     value: function _applyTransform(t) {
       this._ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
+
+      _hitMargin = 1 / this._transform.a * 10 * this._pixelRatio();
     } // set the transform on the context
 
   }, {
@@ -1152,6 +1200,9 @@ var Flast = /*#__PURE__*/function () {
             key: 'length',
             value: Flast._distance(p2, p1)
           }];
+        },
+        hint: function hint(geometry) {
+          return geometry ? 'Click to draw the second point.' : 'Click to draw the first point of a new line.';
         }
       };
     }
@@ -1167,7 +1218,10 @@ var Flast = /*#__PURE__*/function () {
         boundingRect: Flast.LINE.boundingRect,
         drawInContext: Flast.LINE.drawInContext,
         hitTest: Flast.LINE.hitTest,
-        scaleGeometry: Flast.LINE.scaleGeometry
+        scaleGeometry: Flast.LINE.scaleGeometry,
+        hint: function hint(geometry) {
+          return geometry ? 'Click the right side of the scale bar.' : 'Click the left side of the scale bar.';
+        }
       };
     }
   }, {
@@ -1184,20 +1238,20 @@ var Flast = /*#__PURE__*/function () {
           var p2 = geometry.p2;
           var arrowHeight = _lineWidth * 6;
           ctx.beginPath();
-          ctx.moveTo(p2.x, p2.y);
+          ctx.moveTo(p1.x, p1.y);
           var vector = {
-            dx: p1.x - p2.x,
-            dy: p1.y - p2.y
+            dx: p2.x - p1.x,
+            dy: p2.y - p1.y
           };
           var length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2));
           var percent = (length - arrowHeight) / length;
-          ctx.lineTo(p2.x + vector.dx * percent, p2.y + vector.dy * percent);
+          ctx.lineTo(p1.x + vector.dx * percent, p1.y + vector.dy * percent);
           ctx.stroke();
-          var radians = Math.atan((p1.y - p2.y) / (p1.x - p2.x));
-          radians += (p2.x <= p1.x ? 90 : -90) * Math.PI / 180;
+          var radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
+          radians += (p1.x <= p2.x ? 90 : -90) * Math.PI / 180;
           ctx.save();
           ctx.beginPath();
-          ctx.translate(p1.x, p1.y);
+          ctx.translate(p2.x, p2.y);
           ctx.rotate(radians);
           ctx.moveTo(0, 0);
           ctx.lineTo(_lineWidth * 3, arrowHeight);
@@ -1208,7 +1262,9 @@ var Flast = /*#__PURE__*/function () {
         },
         hitTest: Flast.LINE.hitTest,
         scaleGeometry: Flast.LINE.scaleGeometry,
-        dimensions: Flast.LINE.dimensions
+        hint: function hint(geometry) {
+          return geometry ? 'Click to draw the point of your arrow.' : 'Click to draw the end of a new arrow.';
+        }
       };
     }
   }, {
@@ -1270,7 +1326,16 @@ var Flast = /*#__PURE__*/function () {
           return [{
             key: 'area',
             value: Math.PI * Math.pow(radius, 2)
+          }, {
+            key: 'radius',
+            value: radius
+          }, {
+            key: 'diameter',
+            value: radius * 2
           }];
+        },
+        hint: function hint(geometry) {
+          return geometry ? 'Click to specificy the radius.' : 'Click where the center of a new circle should be.';
         }
       };
     }
@@ -1331,7 +1396,16 @@ var Flast = /*#__PURE__*/function () {
           return [{
             key: 'area',
             value: width * height
+          }, {
+            key: 'width',
+            value: width
+          }, {
+            key: 'height',
+            value: height
           }];
+        },
+        hint: function hint(geometry) {
+          return geometry ? 'Click to draw the second corner.' : 'Click to draw the first corner of a new rectangle.';
         }
       };
     }
@@ -1340,25 +1414,45 @@ var Flast = /*#__PURE__*/function () {
     get: function get() {
       return {
         name: 'freehand',
-        keyCode: 102,
+        keyCode: 70,
         startGeometry: function startGeometry(pt) {
           return [[pt.x, pt.y]];
         },
         updateGeometry: function updateGeometry(geometry, pt) {
-          return geometry.concat([[pt.x, pt.y]]);
+          var g = geometry.concat([[pt.x, pt.y]]);
+
+          if (g.length > 10) {
+            g = g.map(function (_ref7) {
+              var _ref8 = _slicedToArray(_ref7, 2),
+                  x = _ref8[0],
+                  y = _ref8[1];
+
+              return {
+                x: x,
+                y: y
+              };
+            });
+            return simplify(g, 3, true).map(function (_ref9) {
+              var x = _ref9.x,
+                  y = _ref9.y;
+              return [x, y];
+            });
+          } else {
+            return g;
+          }
         },
         boundingRect: function boundingRect(geometry) {
-          var xs = geometry.map(function (_ref7) {
-            var _ref8 = _slicedToArray(_ref7, 2),
-                x = _ref8[0],
-                _y = _ref8[1];
+          var xs = geometry.map(function (_ref10) {
+            var _ref11 = _slicedToArray(_ref10, 2),
+                x = _ref11[0],
+                _y = _ref11[1];
 
             return x;
           }).sort();
-          var ys = geometry.map(function (_ref9) {
-            var _ref10 = _slicedToArray(_ref9, 2),
-                x_ = _ref10[0],
-                y = _ref10[1];
+          var ys = geometry.map(function (_ref12) {
+            var _ref13 = _slicedToArray(_ref12, 2),
+                x_ = _ref13[0],
+                y = _ref13[1];
 
             return y;
           }).sort();
@@ -1375,32 +1469,33 @@ var Flast = /*#__PURE__*/function () {
         },
         drawInContext: function drawInContext(ctx, geometry) {
           var g = geometry;
+          ctx.save();
+          ctx.lineCap = 'round';
           ctx.beginPath();
-          ctx.strokeRect(g.x, g.y, g.width, g.height);
-          ctx.stroke();
           var p1 = geometry[0];
           ctx.beginPath();
           ctx.moveTo(p1[0], p1[1]);
-          geometry.forEach(function (_ref11) {
-            var _ref12 = _slicedToArray(_ref11, 2),
-                x = _ref12[0],
-                y = _ref12[1];
+          geometry.forEach(function (_ref14) {
+            var _ref15 = _slicedToArray(_ref14, 2),
+                x = _ref15[0],
+                y = _ref15[1];
 
             ctx.lineTo(x, y);
           });
           ctx.stroke();
+          ctx.restore();
         },
         hitTest: function hitTest(geometry, pt) {
-          return geometry.some(function (_ref13, idx) {
-            var _ref14 = _slicedToArray(_ref13, 2),
-                x = _ref14[0],
-                y = _ref14[1];
+          return geometry.some(function (_ref16, idx) {
+            var _ref17 = _slicedToArray(_ref16, 2),
+                x = _ref17[0],
+                y = _ref17[1];
 
-            var _geometry = _slicedToArray(geometry[idx - 1], 2),
-                px = _geometry[0],
-                py = _geometry[1];
+            if (geometry[idx - 1]) {
+              var _geometry2 = _slicedToArray(geometry[idx - 1], 2),
+                  px = _geometry2[0],
+                  py = _geometry2[1];
 
-            if (px) {
               var line = {
                 p1: {
                   x: x,
@@ -1416,13 +1511,86 @@ var Flast = /*#__PURE__*/function () {
           });
         },
         scaleGeometry: function scaleGeometry(geometry, factor) {
-          return geometry.map(function (_ref15) {
-            var _ref16 = _slicedToArray(_ref15, 2),
-                x = _ref16[0],
-                y = _ref16[1];
+          return geometry.map(function (_ref18) {
+            var _ref19 = _slicedToArray(_ref18, 2),
+                x = _ref19[0],
+                y = _ref19[1];
 
             return [x * factor, y * factor];
           });
+        },
+        dimensions: function dimensions(geometry) {
+          // Repeat the coordinates of the first point at the bottom of the list.
+          geometry = geometry.concat([geometry[0]]); // Multiply the x coordinate of each vertex by the y coordinate of the next vertex.
+
+          var a = geometry.reduce(function (acc, _ref20, idx) {
+            var _ref21 = _slicedToArray(_ref20, 2),
+                x = _ref21[0],
+                _ = _ref21[1];
+
+            var next = geometry[idx + 1];
+
+            if (next) {
+              return acc + x * next[1];
+            } else {
+              return acc;
+            }
+          }, 0); // Multiply the y coordinate of each vertex by the x coordinate of the next vertex.
+
+          var b = geometry.reduce(function (acc, _ref22, idx) {
+            var _ref23 = _slicedToArray(_ref22, 2),
+                _ = _ref23[0],
+                y = _ref23[1];
+
+            var next = geometry[idx + 1];
+
+            if (next) {
+              return acc + y * next[0];
+            } else {
+              return acc;
+            }
+          }, 0); // Subtract the sum of the second products from the sum of the first products & divide by 2
+
+          return [{
+            key: 'area',
+            value: Math.abs((b - a) / 2)
+          }];
+        },
+        hint: function hint(geometry) {
+          return geometry ? 'Click to stop drawing.' : 'Click to start drawing.';
+        }
+      };
+    }
+  }, {
+    key: "POLYGON",
+    get: function get() {
+      return {
+        name: 'polygon',
+        keyCode: 80,
+        startGeometry: function startGeometry(pt) {
+          return [[pt.x, pt.y]];
+        },
+        updateGeometry: function updateGeometry(geometry, pt) {
+          if (geometry.length === 1) {
+            return geometry.concat([[pt.x, pt.y]]);
+          } else {
+            // otherwise, replace the last item with the currently drawing point
+            return geometry.slice(0, -1).concat([[pt.x, pt.y]]);
+          }
+        },
+        shouldAddSegment: function shouldAddSegment(_geometry, _pt, event) {
+          return !event.shiftKey;
+        },
+        addSegment: function addSegment(geometry, pt) {
+          return geometry.concat([[pt.x, pt.y]]);
+        },
+        boundingRect: Flast.FREEHAND.boundingRect,
+        drawInContext: Flast.FREEHAND.drawInContext,
+        hitTest: Flast.FREEHAND.hitTest,
+        scaleGeometry: Flast.FREEHAND.scaleGeometry,
+        dimensions: Flast.FREEHAND.dimensions,
+        hint: function hint(geometry) {
+          return geometry ? 'Click to draw another point or shift + click to draw the last point.' : 'Click to draw the first point.';
         }
       };
     }
@@ -1430,3 +1598,102 @@ var Flast = /*#__PURE__*/function () {
 
   return Flast;
 }();
+/***********************
+* Simplify
+***********************/
+
+/*
+ (c) 2017, Vladimir Agafonkin
+ Simplify.js, a high-performance JS polyline simplification library
+ mourner.github.io/simplify-js
+*/
+// square distance between 2 points
+
+
+function getSqDist(p1, p2) {
+  var dx = p1.x - p2.x,
+      dy = p1.y - p2.y;
+  return dx * dx + dy * dy;
+} // square distance from a point to a segment
+
+
+function getSqSegDist(p, p1, p2) {
+  var x = p1.x,
+      y = p1.y,
+      dx = p2.x - x,
+      dy = p2.y - y;
+
+  if (dx !== 0 || dy !== 0) {
+    var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+
+    if (t > 1) {
+      x = p2.x;
+      y = p2.y;
+    } else if (t > 0) {
+      x += dx * t;
+      y += dy * t;
+    }
+  }
+
+  dx = p.x - x;
+  dy = p.y - y;
+  return dx * dx + dy * dy;
+} // rest of the code doesn't care about point format
+// basic distance-based simplification
+
+
+function simplifyRadialDist(points, sqTolerance) {
+  var prevPoint = points[0],
+      newPoints = [prevPoint],
+      point;
+
+  for (var i = 1, len = points.length; i < len; i++) {
+    point = points[i];
+
+    if (getSqDist(point, prevPoint) > sqTolerance) {
+      newPoints.push(point);
+      prevPoint = point;
+    }
+  }
+
+  if (prevPoint !== point) newPoints.push(point);
+  return newPoints;
+}
+
+function simplifyDPStep(points, first, last, sqTolerance, simplified) {
+  var maxSqDist = sqTolerance,
+      index;
+
+  for (var i = first + 1; i < last; i++) {
+    var sqDist = getSqSegDist(points[i], points[first], points[last]);
+
+    if (sqDist > maxSqDist) {
+      index = i;
+      maxSqDist = sqDist;
+    }
+  }
+
+  if (maxSqDist > sqTolerance) {
+    if (index - first > 1) simplifyDPStep(points, first, index, sqTolerance, simplified);
+    simplified.push(points[index]);
+    if (last - index > 1) simplifyDPStep(points, index, last, sqTolerance, simplified);
+  }
+} // simplification using Ramer-Douglas-Peucker algorithm
+
+
+function simplifyDouglasPeucker(points, sqTolerance) {
+  var last = points.length - 1;
+  var simplified = [points[0]];
+  simplifyDPStep(points, 0, last, sqTolerance, simplified);
+  simplified.push(points[last]);
+  return simplified;
+} // both algorithms combined for awesome performance
+
+
+function simplify(points, tolerance, highestQuality) {
+  if (points.length <= 2) return points;
+  var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1;
+  points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
+  points = simplifyDouglasPeucker(points, sqTolerance);
+  return points;
+}

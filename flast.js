@@ -42,6 +42,7 @@ class Flast {
       dragging: false,
       drawing: false,
       enabled: true,
+      calibration: options.calibration
     }
     this._contentSize = {
       width: options.width || 624 * Math.pow(2, this.maxZoom),
@@ -217,6 +218,8 @@ class Flast {
         // (can be overriden in drawInContext)
         this._ctx.fillStyle = annotation.color || this._authorColor || '#FF0000'
         this._ctx.strokeStyle = annotation.color || this._authorColor || '#FF0000'
+        // if we decide we want the line to stay the same width at all scales:
+        // this._ctx.lineWidth = (1 / this._transform.a) * _lineWidth
         this._ctx.lineWidth = _lineWidth
 
         tool.drawInContext(this._ctx, tool.scaleGeometry(shape.geometry, this._pixelRatio()))
@@ -342,17 +345,27 @@ class Flast {
     this._updateTransform()
   }
 
-  getDimensions({ kind, geometry }) {
-    if (!this._state.calibration) {
-      return 'needs calibration'
-    }
+  getTool(name) {
+    return this.tools.find(tool => {
+      return tool.name === name
+    })
+  }
 
+  getDimensions({ kind, geometry }) {
     let tool = this.tools.find(tool => {
       return tool.name === kind
     })
 
+    if (!this._state.calibration || !(tool && tool.dimensions)) {
+      return null
+    }
+
     return tool.dimensions(geometry).map(({ key, value }) => {
-      return { key: key, value: value * this._state.calibration }
+      if (key === 'area') {
+        return { key: key, value: value * Math.pow(this._state.calibration, 2) }
+      } else {
+        return { key: key, value: value * this._state.calibration }
+      }
     })
   }
 
@@ -377,7 +390,7 @@ class Flast {
     this._canvas.setAttribute('height', this.canvasHeight * scale)
     this._ctx.scale(scale, scale)
     _hitMargin = 60 * this._pixelRatio() * 2
-    _lineWidth = 20 * this._pixelRatio() * 2
+    _lineWidth = 10 * this._pixelRatio() * 2
   }
 
   _updateZoom(e) {
@@ -418,6 +431,7 @@ class Flast {
 
   _mouseUp(e) {
     this._state.mouse = 'up'
+    let pt = this._eventPoint(e)
 
     // stop dragging
     if (this._state.dragging) {
@@ -430,7 +444,6 @@ class Flast {
     // start drawing
     else if (!this._state.drawing && this._state.tool !== 'none' && this._state.enabled) {
       this._state.drawing = true
-      let pt = this._eventPoint(e)
       let tool = this._currentTool()
       // set current shape
       let scaled = { x: pt.x / this._pixelRatio(), y: pt.y / this._pixelRatio() }
@@ -444,52 +457,67 @@ class Flast {
       }
     }
 
-    // stop drawing
+    // stop drawing / update shape
     else if (this._state.drawing) {
-      this._state.drawing = false
-      // if there is not a current annotation
-      if (!this._drawingAnnotation) {
-        // start new annotation
-        this._drawingAnnotation = { shapes: [] }
+      const tool = this._currentTool()
+
+      const nextPoint = {
+        x: pt.x / this._pixelRatio(),
+        y: pt.y / this._pixelRatio(),
+      }
+
+      if (tool.shouldAddSegment && tool.shouldAddSegment(this._currentShape.geometry, nextPoint, e)) {
+        this._currentShape.geometry = tool.addSegment(this._currentShape.geometry, nextPoint)
+        if (this.callbacks.didUpdateDrawingShape) {
+          this.callbacks.didUpdateDrawingShape({ shape: this._currentShape, event: e })
+        }
+        this.redraw()
+      } else {
+        this._state.drawing = false
+        // if there is not a current annotation
+        if (!this._drawingAnnotation) {
+          // start new annotation
+          this._drawingAnnotation = { shapes: [] }
+          // callback
+          if (this.callbacks.didStartAnnotation) {
+            this.callbacks.didStartAnnotation(this._drawingAnnotation)
+          }
+        }
+        // finalize drawing if tool provides it
+        if (tool.finalGeometry) {
+          this._currentShape.geometry = tool.finalGeometry(this._currentShape.geometry)
+        }
+
+        // add shape to current annotation
+        this._drawingAnnotation.shapes.push(this._currentShape)
         // callback
-        if (this.callbacks.didStartAnnotation) {
-          this.callbacks.didStartAnnotation(this._drawingAnnotation)
+        if (this.callbacks.didFinishDrawingShape) {
+          this.callbacks.didFinishDrawingShape(this._currentShape)
         }
-      }
-      // finalize drawing if tool provides it
-      let tool = this._currentTool()
-      if (tool.finalGeometry) {
-        this._currentShape.geometry = tool.finalGeometry(this._currentShape.geometry)
-      }
 
-      // add shape to current annotation
-      this._drawingAnnotation.shapes.push(this._currentShape)
-      // callback
-      if (this.callbacks.didFinishDrawingShape) {
-        this.callbacks.didFinishDrawingShape(this._currentShape)
-      }
-
-      // if we're calibrating, we don't want to keep drawing
-      if (this._state.tool === 'calibrator') {
-        let answer = Flast.parseUnits(this.callbacks.promptForCalibration())
-        if (answer) {
-          let feet = answer.value
-          let { p1, p2 } = this._currentShape.geometry
-          let pixels = Flast._distance(p2, p1)
-          console.log(feet, ' -> ', pixels)
-          this._state.calibration = feet / pixels
+        // if we're calibrating, we don't want to keep drawing
+        if (this._state.tool === 'calibrator') {
+          let answer = Flast.parseUnits(this.callbacks.promptForCalibration())
+          if (answer) {
+            let feet = answer.value
+            let { p1, p2 } = this._currentShape.geometry
+            let pixels = Flast._distance(p2, p1)
+            this._state.calibration = feet / pixels
+            if (this.callbacks.didCalibrate) {
+              this.callbacks.didCalibrate(this._state.calibration)
+            }
+          }
+          this.cancelAnnotation()
         }
-        this.cancelAnnotation()
-      }
 
-      this._currentShape = null
-      this.redraw()
+        this._currentShape = null
+        this.redraw()
+      }
     }
 
     // if nothing already selected
     else if (this._state.enabled) {
       // if mouse up over a shape
-      let pt = this._eventPoint(e)
       for (let annotation of this.annotations) {
         for (let shape of annotation.shapes) {
           // find the tool that drew this shape
@@ -534,6 +562,9 @@ class Flast {
         x: pt.x / this._pixelRatio(),
         y: pt.y / this._pixelRatio(),
       })
+      if (this.callbacks.didUpdateDrawingShape) {
+        this.callbacks.didUpdateDrawingShape({ shape: this._currentShape, event: e })
+      }
       this.redraw()
     }
     if (this._state.mouse === 'up' && !this._state.drawing && this._state.enabled) {
@@ -610,6 +641,7 @@ class Flast {
 
   _applyTransform(t) {
     this._ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f)
+    _hitMargin = (1 / this._transform.a) * 10 * this._pixelRatio()
   }
 
   // set the transform on the context
@@ -748,6 +780,9 @@ class Flast {
         const { p1, p2 } = geometry
         return [{ key: 'length', value: Flast._distance(p2, p1) }]
       },
+      hint(geometry) {
+        return geometry ? 'Click to draw the second point.' : 'Click to draw the first point of a new line.'
+      }
     }
   }
 
@@ -761,6 +796,9 @@ class Flast {
       drawInContext: Flast.LINE.drawInContext,
       hitTest: Flast.LINE.hitTest,
       scaleGeometry: Flast.LINE.scaleGeometry,
+      hint(geometry) {
+        return geometry ? 'Click the right side of the scale bar.' : 'Click the left side of the scale bar.'
+      }
     }
   }
 
@@ -777,22 +815,22 @@ class Flast {
         let arrowHeight = _lineWidth * 6
 
         ctx.beginPath()
-        ctx.moveTo(p2.x, p2.y)
+        ctx.moveTo(p1.x, p1.y)
         let vector = {
-          dx: p1.x - p2.x,
-          dy: p1.y - p2.y,
+          dx: p2.x - p1.x,
+          dy: p2.y - p1.y,
         }
         let length = Math.sqrt(Math.pow(vector.dx, 2) + Math.pow(vector.dy, 2))
         let percent = (length - arrowHeight) / length
-        ctx.lineTo(p2.x + vector.dx * percent, p2.y + vector.dy * percent)
+        ctx.lineTo(p1.x + vector.dx * percent, p1.y + vector.dy * percent)
         ctx.stroke()
 
-        let radians = Math.atan((p1.y - p2.y) / (p1.x - p2.x))
-        radians += ((p2.x <= p1.x ? 90 : -90) * Math.PI) / 180
+        let radians = Math.atan((p2.y - p1.y) / (p2.x - p1.x))
+        radians += ((p1.x <= p2.x ? 90 : -90) * Math.PI) / 180
 
         ctx.save()
         ctx.beginPath()
-        ctx.translate(p1.x, p1.y)
+        ctx.translate(p2.x, p2.y)
         ctx.rotate(radians)
         ctx.moveTo(0, 0)
         ctx.lineTo(_lineWidth * 3, arrowHeight)
@@ -803,7 +841,9 @@ class Flast {
       },
       hitTest: Flast.LINE.hitTest,
       scaleGeometry: Flast.LINE.scaleGeometry,
-      dimensions: Flast.LINE.dimensions,
+      hint(geometry) {
+        return geometry ? 'Click to draw the point of your arrow.' : 'Click to draw the end of a new arrow.'
+      }
     }
   }
 
@@ -857,8 +897,15 @@ class Flast {
         }
       },
       dimensions({ radius }) {
-        return [{ key: 'area', value: Math.PI * Math.pow(radius, 2) }]
+        return [
+          { key: 'area', value: Math.PI * Math.pow(radius, 2) },
+          { key: 'radius', value: radius },
+          { key: 'diameter', value: radius * 2 },
+        ]
       },
+      hint(geometry) {
+        return geometry ? 'Click to specificy the radius.' : 'Click where the center of a new circle should be.'
+      }
     }
   }
 
@@ -922,20 +969,34 @@ class Flast {
         }
       },
       dimensions({ width, height }) {
-        return [{ key: 'area', value: width * height }]
+        return [
+          { key: 'area', value: width * height },
+          { key: 'width', value: width },
+          { key: 'height', value: height },
+        ]
       },
+      hint(geometry) {
+        return geometry ? 'Click to draw the second corner.' : 'Click to draw the first corner of a new rectangle.'
+      }
     }
   }
 
   static get FREEHAND() {
     return {
       name: 'freehand',
-      keyCode: 102,
+      keyCode: 70,
       startGeometry(pt) {
         return [[pt.x, pt.y]]
       },
       updateGeometry(geometry, pt) {
-        return geometry.concat([[pt.x, pt.y]])
+        let g = geometry.concat([[pt.x, pt.y]])
+        if (g.length > 10) {
+          g = g.map(([x, y]) => ({ x, y }))
+          return simplify(g, 3, true).map(({ x, y }) => [x, y])
+        }
+        else {
+          return g
+        }
       },
       boundingRect(geometry) {
         const xs = geometry.map(([x, _y]) => x).sort()
@@ -953,10 +1014,9 @@ class Flast {
       },
       drawInContext(ctx, geometry) {
         let g = geometry
+        ctx.save()
+        ctx.lineCap = 'round'
         ctx.beginPath()
-        ctx.strokeRect(g.x, g.y, g.width, g.height)
-        ctx.stroke()
-
         let p1 = geometry[0]
         ctx.beginPath()
         ctx.moveTo(p1[0], p1[1])
@@ -964,11 +1024,12 @@ class Flast {
           ctx.lineTo(x, y)
         })
         ctx.stroke()
+        ctx.restore()
       },
       hitTest(geometry, pt) {
         return geometry.some(([x, y], idx) => {
-          const [px, py] = geometry[idx - 1]
-          if (px) {
+          if (geometry[idx - 1]) {
+            const [px, py] = geometry[idx - 1]
             const line = {
               p1: { x, y },
               p2: { x: px, y: py },
@@ -980,6 +1041,68 @@ class Flast {
       scaleGeometry(geometry, factor) {
         return geometry.map(([x, y]) => [x * factor, y * factor])
       },
+      dimensions(geometry) {
+        // Repeat the coordinates of the first point at the bottom of the list.
+        geometry = geometry.concat([geometry[0]])
+        // Multiply the x coordinate of each vertex by the y coordinate of the next vertex.
+        const a = geometry.reduce((acc, [x, _], idx) => {
+          const next = geometry[idx + 1]
+          if (next) {
+            return acc + (x * next[1])
+          } else {
+            return acc
+          }
+        }, 0)
+        // Multiply the y coordinate of each vertex by the x coordinate of the next vertex.
+        const b = geometry.reduce((acc, [_, y], idx) => {
+          const next = geometry[idx + 1]
+          if (next) {
+            return acc + (y * next[0])
+          } else {
+            return acc
+          }
+        }, 0)
+
+        // Subtract the sum of the second products from the sum of the first products & divide by 2
+        return [
+          { key: 'area', value: Math.abs((b - a) / 2) }
+        ]
+      },
+      hint(geometry) {
+        return geometry ? 'Click to stop drawing.' : 'Click to start drawing.'
+      }
+    }
+  }
+
+  static get POLYGON() {
+    return {
+      name: 'polygon',
+      keyCode: 80,
+      startGeometry(pt) {
+        return [[pt.x, pt.y]]
+      },
+      updateGeometry(geometry, pt) {
+        if (geometry.length === 1) {
+          return geometry.concat([[pt.x, pt.y]])
+        } else {
+          // otherwise, replace the last item with the currently drawing point
+          return geometry.slice(0,-1).concat([[pt.x, pt.y]])
+        }
+      },
+      shouldAddSegment(_geometry, _pt, event) {
+        return !event.shiftKey
+      },
+      addSegment(geometry, pt) {
+        return geometry.concat([[pt.x, pt.y]])
+      },
+      boundingRect: Flast.FREEHAND.boundingRect,
+      drawInContext: Flast.FREEHAND.drawInContext,
+      hitTest: Flast.FREEHAND.hitTest,
+      scaleGeometry: Flast.FREEHAND.scaleGeometry,
+      dimensions: Flast.FREEHAND.dimensions,
+      hint(geometry) {
+        return geometry ? 'Click to draw another point or shift + click to draw the last point.' : 'Click to draw the first point.'
+      }
     }
   }
 
@@ -1055,4 +1178,116 @@ class Flast {
 
     return { value: scope.value, units: 'feet' }
   }
+}
+
+
+/***********************
+* Simplify
+***********************/
+
+/*
+ (c) 2017, Vladimir Agafonkin
+ Simplify.js, a high-performance JS polyline simplification library
+ mourner.github.io/simplify-js
+*/
+
+// square distance between 2 points
+function getSqDist(p1, p2) {
+  var dx = p1.x - p2.x,
+      dy = p1.y - p2.y;
+
+  return dx * dx + dy * dy;
+}
+
+// square distance from a point to a segment
+function getSqSegDist(p, p1, p2) {
+
+  var x = p1.x,
+      y = p1.y,
+      dx = p2.x - x,
+      dy = p2.y - y;
+
+  if (dx !== 0 || dy !== 0) {
+    var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+
+    if (t > 1) {
+        x = p2.x;
+        y = p2.y;
+
+    } else if (t > 0) {
+        x += dx * t;
+        y += dy * t;
+    }
+  }
+
+  dx = p.x - x;
+  dy = p.y - y;
+
+  return dx * dx + dy * dy;
+}
+// rest of the code doesn't care about point format
+
+// basic distance-based simplification
+function simplifyRadialDist(points, sqTolerance) {
+
+  var prevPoint = points[0],
+      newPoints = [prevPoint],
+      point;
+
+  for (var i = 1, len = points.length; i < len; i++) {
+    point = points[i];
+
+    if (getSqDist(point, prevPoint) > sqTolerance) {
+        newPoints.push(point);
+        prevPoint = point;
+    }
+  }
+
+  if (prevPoint !== point) newPoints.push(point);
+
+  return newPoints;
+}
+
+function simplifyDPStep(points, first, last, sqTolerance, simplified) {
+  var maxSqDist = sqTolerance,
+      index;
+
+  for (var i = first + 1; i < last; i++) {
+    var sqDist = getSqSegDist(points[i], points[first], points[last]);
+
+    if (sqDist > maxSqDist) {
+      index = i;
+      maxSqDist = sqDist;
+    }
+  }
+
+  if (maxSqDist > sqTolerance) {
+    if (index - first > 1) simplifyDPStep(points, first, index, sqTolerance, simplified);
+    simplified.push(points[index]);
+    if (last - index > 1) simplifyDPStep(points, index, last, sqTolerance, simplified);
+  }
+}
+
+// simplification using Ramer-Douglas-Peucker algorithm
+function simplifyDouglasPeucker(points, sqTolerance) {
+  var last = points.length - 1;
+
+  var simplified = [points[0]];
+  simplifyDPStep(points, 0, last, sqTolerance, simplified);
+  simplified.push(points[last]);
+
+  return simplified;
+}
+
+// both algorithms combined for awesome performance
+function simplify(points, tolerance, highestQuality) {
+
+  if (points.length <= 2) return points;
+
+  var sqTolerance = tolerance !== undefined ? tolerance * tolerance : 1;
+
+  points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
+  points = simplifyDouglasPeucker(points, sqTolerance);
+
+  return points;
 }

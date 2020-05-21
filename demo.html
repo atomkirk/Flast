@@ -82,6 +82,7 @@
           <button onclick="selectCircleTool()">circle</button>
           <button onclick="selectRectangleTool()">rectangle</button>
           <button onclick="selectFreehandTool()">freehand</button>
+          <button onclick="selectPolygonTool()">polygon</button>
           <button onclick="calibrate()">calibrate</button>
           <button onclick="center()">center</button>
           <button id="js-done-button" style="display: none;" onclick="done()">done</button>
@@ -135,8 +136,9 @@
           getTileUrl: function(zoom, x, y) {
             return `https://flast-redline-dvp-tiles.s3-us-west-2.amazonaws.com/${query.token}/page_${query.page}/zoom_${zoom}/tile_${x}x${y}.png`
           },
-          tools: [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE, Flast.CALIBRATOR, Flast.FREEHAND],
-          annotations: ,
+          tools: [Flast.ARROW, Flast.LINE, Flast.CIRCLE, Flast.RECTANGLE, Flast.CALIBRATOR, Flast.FREEHAND, Flast.POLYGON],
+          annotations: annotations,
+          calibration: 0.018040254463799373,
           callbacks: {
             didSelectTool: () => {},
             didStartAnnotation: annotation => {
@@ -155,6 +157,12 @@
             didBeginDrawingShape: shape => {
               // console.log('didBeginDrawingShape');
             },
+            didUpdateDrawingShape: ({ shape }) => {
+              let dims = editor.getDimensions(shape)
+              if (dims) {
+                console.log(dims[0].value)
+              }
+            },
             didCancelDrawingShape: shape => {
               // console.log('didCancelDrawingShape');
             },
@@ -167,12 +175,15 @@
               editor.setTool(null)
               return quantity
             },
+            didCalibrate: calibration => {
+              console.log(calibration)
+            },
             didUpdateTransform: transform => {
               // console.log(transform);
             },
             mouseOverAnnotation: ({ shape }) => {
               document.body.style.cursor = shape ? 'pointer' : 'default'
-              if (shape) {
+              if (shape && editor.getDimensions(shape)) {
                 const markup = editor.getDimensions(shape).map(({ key, value }) => {
                   return `<div><b>${key}</b> ${value}</div>`
                 })
@@ -223,6 +234,10 @@
 
       function selectFreehandTool(e) {
         editor.setTool('freehand')
+      }
+
+      function selectPolygonTool(e) {
+        editor.setTool('polygon')
       }
 
       function calibrate(e) {
